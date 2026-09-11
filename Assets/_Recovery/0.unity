@@ -402,7 +402,7 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 0
+  m_Transition: 1
   m_Colors:
     m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
     m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
@@ -831,8 +831,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4278190080
-  m_fontColor: {r: 0, g: 0, b: 0, a: 1}
+    rgba: 4288256409
+  m_fontColor: {r: 0.6, g: 0.6, b: 0.6, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -960,7 +960,7 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 0
+  m_Transition: 1
   m_Colors:
     m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
     m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
@@ -1089,8 +1089,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4278190080
-  m_fontColor: {r: 0, g: 0, b: 0, a: 1}
+    rgba: 4288256409
+  m_fontColor: {r: 0.6, g: 0.6, b: 0.6, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -1355,7 +1355,7 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 0
+  m_Transition: 1
   m_Colors:
     m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
     m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
@@ -1686,8 +1686,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4278190080
-  m_fontColor: {r: 0, g: 0, b: 0, a: 1}
+    rgba: 4288256409
+  m_fontColor: {r: 0.6, g: 0.6, b: 0.6, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -2020,7 +2020,7 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 0
+  m_Transition: 1
   m_Colors:
     m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
     m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
@@ -3169,8 +3169,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4278190080
-  m_fontColor: {r: 0, g: 0, b: 0, a: 1}
+    rgba: 4288256409
+  m_fontColor: {r: 0.6, g: 0.6, b: 0.6, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -3252,7 +3252,7 @@ GameObject:
   - component: {fileID: 1184738623}
   - component: {fileID: 1184738622}
   m_Layer: 5
-  m_Name: eye_24
+  m_Name: eye_15 (9)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3265,17 +3265,17 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1184738620}
-  m_LocalRotation: {x: -0, y: -0, z: 0.9714212, w: -0.23736261}
+  m_LocalRotation: {x: -0, y: -0, z: 0.8645927, w: 0.50247353}
   m_LocalPosition: {x: 0, y: 0, z: -102.99993}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2030739020}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 207.462}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 119.672}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -94, y: -4}
-  m_SizeDelta: {x: 86, y: 69}
+  m_AnchoredPosition: {x: 507, y: -79}
+  m_SizeDelta: {x: 157, y: 123}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1184738622
 MonoBehaviour:
@@ -3297,7 +3297,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 7e7023adc8beff943941c9c9bac53c80, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 49dba6b7e2348284f8c6bf0fc09d3753, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -3373,7 +3373,7 @@ MonoBehaviour:
     m_SelectOnDown: {fileID: 0}
     m_SelectOnLeft: {fileID: 0}
     m_SelectOnRight: {fileID: 0}
-  m_Transition: 0
+  m_Transition: 1
   m_Colors:
     m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
     m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
@@ -3448,7 +3448,7 @@ GameObject:
   - component: {fileID: 1298576641}
   - component: {fileID: 1298576640}
   m_Layer: 5
-  m_Name: eye_22
+  m_Name: eye_15 (7)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3461,17 +3461,17 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1298576638}
-  m_LocalRotation: {x: -0, y: -0, z: 0.91737324, w: 0.39802808}
+  m_LocalRotation: {x: -0, y: -0, z: 0.8645927, w: 0.50247353}
   m_LocalPosition: {x: 0, y: 0, z: -102.99993}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2030739020}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 133.09}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 119.672}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 422, y: 1}
-  m_SizeDelta: {x: 83, y: 63}
+  m_AnchoredPosition: {x: 507, y: -79}
+  m_SizeDelta: {x: 157, y: 123}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1298576640
 MonoBehaviour:
@@ -3493,7 +3493,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: dc557dd0f70cc7146a7ece33a4a01931, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 49dba6b7e2348284f8c6bf0fc09d3753, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -3714,8 +3714,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4278190080
-  m_fontColor: {r: 0, g: 0, b: 0, a: 1}
+    rgba: 4288256409
+  m_fontColor: {r: 0.6, g: 0.6, b: 0.6, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -3947,7 +3947,7 @@ GameObject:
   - component: {fileID: 1554289538}
   - component: {fileID: 1554289537}
   m_Layer: 5
-  m_Name: eye_23
+  m_Name: eye_15 (8)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3960,16 +3960,16 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1554289535}
-  m_LocalRotation: {x: -0, y: -0, z: 0.7457425, w: -0.6662343}
+  m_LocalRotation: {x: -0, y: -0, z: 0.8645927, w: 0.50247353}
   m_LocalPosition: {x: 0, y: 0, z: -102.99993}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2030739020}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 263.55402}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 119.672}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 483, y: -216}
+  m_AnchoredPosition: {x: 507, y: -79}
   m_SizeDelta: {x: 157, y: 123}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1554289537
@@ -4480,16 +4480,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d1341eb3fbc9ab47b74b4d154c6e39a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ButtonAnimation
-  textNormalColor: {r: 0, g: 0, b: 0, a: 1}
+  bgNormalColor: {r: 1, g: 1, b: 1, a: 0.08}
+  bgHighlightColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  textNormalColor: {r: 1, g: 1, b: 1, a: 0.6}
   textHighlightColor: {r: 1, g: 1, b: 1, a: 1}
-  delayBetweenLetters: 0.03
-  letterFadeDuration: 0.12
-  bgNormalColor: {r: 1, g: 1, b: 1, a: 0.039215688}
-  bgHighlightColor: {r: 0.4, g: 0.4, b: 0.4, a: 1}
-  bgFadeDuration: 0.15
-  bgPressedColor: {r: 0.05, g: 0.05, b: 0.05, a: 1}
-  pressedScale: 0.96
-  pressFadeDuration: 0.08
+  fadeDuration: 0.15
 --- !u!1 &1930790749
 GameObject:
   m_ObjectHideFlags: 0
