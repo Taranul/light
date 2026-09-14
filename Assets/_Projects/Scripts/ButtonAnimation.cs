@@ -88,8 +88,6 @@ public class ButtonAnimation : MonoBehaviour
         StartBgFade(btn, toHighlight);
     }
 
-    // ---------- Волна по буквам ----------
-
     void StartWave(ButtonRefs btn, bool toHighlight)
     {
         if (btn.waveRoutine != null) StopCoroutine(btn.waveRoutine);
@@ -167,8 +165,6 @@ public class ButtonAnimation : MonoBehaviour
         text.UpdateVertexData(TMP_VertexDataUpdateFlags.Colors32);
     }
 
-    // ---------- Фон кнопки (hover) ----------
-
     void StartBgFade(ButtonRefs btn, bool toHighlight)
     {
         if (btn.bgRoutine != null) StopCoroutine(btn.bgRoutine);
@@ -188,7 +184,6 @@ public class ButtonAnimation : MonoBehaviour
         btn.background.color = target;
     }
 
-    // ---------- Нажатие ----------
 
     void StartPress(ButtonRefs btn, bool isDown)
     {
@@ -196,9 +191,6 @@ public class ButtonAnimation : MonoBehaviour
         btn.pressRoutine = StartCoroutine(PressEffect(btn, isDown));
     }
 
-    // При нажатии — быстро темнеет и слегка сжимается. При отпускании —
-    // возвращается к тому цвету, который сейчас актуален (hover или normal),
-    // и к исходному масштабу.
     IEnumerator PressEffect(ButtonRefs btn, bool isDown)
     {
         Color colorTarget = isDown ? bgPressedColor : (btn.isHovering ? bgHighlightColor : bgNormalColor);
