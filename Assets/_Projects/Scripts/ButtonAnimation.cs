@@ -57,6 +57,28 @@ public class ButtonAnimation : MonoBehaviour
         Initialize();
     }
 
+    void OnDisable()
+    {
+        foreach (var btn in buttons)
+        {
+            if (btn == null || btn.background == null) continue;
+
+            if (btn.waveRoutine != null) StopCoroutine(btn.waveRoutine);
+            if (btn.bgRoutine != null) StopCoroutine(btn.bgRoutine);
+            if (btn.pressRoutine != null) StopCoroutine(btn.pressRoutine);
+            foreach (var r in btn.activeLetterFades)
+            {
+                if (r != null) StopCoroutine(r);
+            }
+            btn.activeLetterFades.Clear();
+
+            btn.background.color = bgNormalColor;
+            if (btn.rect != null) btn.rect.localScale = Vector3.one;
+            SetAllLettersColor(btn.text, textNormalColor);
+            btn.isHovering = false;
+        }
+    }
+
     void SetupHover(GameObject hoverTarget, ButtonRefs btn)
     {
         SetAllLettersColor(btn.text, textNormalColor);
