@@ -277,7 +277,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 1
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: fee484c1436a20442a38c9deb5926cbe, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -477,9 +477,12 @@ MonoBehaviour:
   headRenderer: {fileID: 1013486560}
   headSprites:
   - {fileID: 21300000, guid: c325c1c4762c40546ae41c620559778d, type: 3}
+  - {fileID: 21300000, guid: 5e2dca864709c284f86786b2256b36b2, type: 3}
+  - {fileID: 21300000, guid: 4a47c4dd7913a4e42a485aebfd6d93c9, type: 3}
   bodyRenderer: {fileID: 120188901}
   bodySprites:
   - {fileID: 21300000, guid: fee484c1436a20442a38c9deb5926cbe, type: 3}
+  - {fileID: 21300000, guid: 3d34c391656f8fa46a9eaa5f50b38b06, type: 3}
   legsRenderer: {fileID: 1402016983}
   legsSprites:
   - {fileID: 21300000, guid: b597d3f56c6c0dc4b92213bb7cef6335, type: 3}
@@ -1102,7 +1105,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 2
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: c325c1c4762c40546ae41c620559778d, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
