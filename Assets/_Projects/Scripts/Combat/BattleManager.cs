@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -21,6 +22,8 @@ namespace Expedition33.Combat
         [SerializeField] private InputBuffer _inputBuffer;
         [SerializeField] private TimingVisualizerUI _timingVisualizer;
         [SerializeField] private OffensiveQTEWidget _qteWidget;
+        [SerializeField] private CombatCameraController _cameraController;
+        [SerializeField] private FreeAimHUD _freeAimHUD;
 
         [Header("Skills & Patterns")]
         [SerializeField] private List<SkillDefinitionSO> _playerSkills;
@@ -41,6 +44,11 @@ namespace Expedition33.Combat
         public CombatActorStats EnemyStats => _enemyStats;
         public ActionPointPool APPool => _apPool;
         public BattleStateMachine StateMachine => _stateMachine;
+
+        private void Awake()
+        {
+            Application.runInBackground = true;
+        }
 
         private void Start()
         {
@@ -106,6 +114,7 @@ namespace Expedition33.Combat
                 _hud.SetupEnemyStatus(_enemyStats);
                 _hud.OnAttackSelected += HandlePlayerAttackSelected;
                 _hud.OnSkillSelected += HandlePlayerSkillSelected;
+                _hud.OnFreeAimSelected += HandlePlayerFreeAimSelected;
                 _hud.OnPassSelected += HandlePlayerPassSelected;
             }
 
@@ -145,6 +154,17 @@ namespace Expedition33.Combat
             {
                 _selectedAction = CombatActionType.Skill;
                 _selectedSkill = skill;
+                _playerActionChosen = true;
+            }
+        }
+
+        private void HandlePlayerFreeAimSelected()
+        {
+            _audioPlayer?.PlayButtonClick();
+            if (_apPool.CanSpend(1))
+            {
+                _selectedAction = CombatActionType.FreeAim;
+                _selectedSkill = null;
                 _playerActionChosen = true;
             }
         }
@@ -214,7 +234,7 @@ namespace Expedition33.Combat
         {
             _stateMachine.ChangeState(BattleState.PlayerTurn);
             _hud?.SetTurnBanner("PLAYER TURN");
-            _hud?.AddLog("Choose Attack, Skill, or Pass.");
+            _hud?.AddLog("Choose Attack, Skill, Free Aim, or Pass.");
             _audioPlayer?.PlayTurnStart();
             _hud?.SetCommandMenuVisible(true);
 
@@ -235,6 +255,10 @@ namespace Expedition33.Combat
             {
                 yield return ExecutePlayerSkill(_selectedSkill);
             }
+            else if (_selectedAction == CombatActionType.FreeAim)
+            {
+                yield return ExecutePlayerFreeAim();
+            }
             else
             {
                 _hud?.AddLog($"{_playerStats.Name} passed the turn.");
@@ -244,7 +268,6 @@ namespace Expedition33.Combat
 
         private IEnumerator ExecutePlayerBasicAttack()
         {
-            // Basic attack generates +1 AP
             _apPool.Generate(1);
             _audioPlayer?.PlayAPGain();
 
@@ -255,7 +278,6 @@ namespace Expedition33.Combat
 
             _playerView.PlayAttack();
 
-            // Run offensive QTE during strike windup
             QTEOutcome qteResult = QTEOutcome.None;
             bool qteComplete = false;
 
@@ -277,7 +299,6 @@ namespace Expedition33.Combat
             while (!qteComplete)
                 yield return null;
 
-            // Damage multiplier based on QTE precision
             float multiplier = 1f;
             bool isCrit = false;
 
@@ -341,7 +362,6 @@ namespace Expedition33.Combat
 
             _playerView.PlayAttack();
 
-            // Run Skill QTE
             QTEOutcome qteResult = QTEOutcome.None;
             bool qteComplete = false;
 
@@ -406,6 +426,156 @@ namespace Expedition33.Combat
             _playerView.AnimateReturn(0.38f, () => returned = true);
             while (!returned)
                 yield return null;
+        }
+
+        private IEnumerator ExecutePlayerFreeAim()
+        {
+            _hud?.SetTurnBanner(string.Empty);
+            _hud?.AddLog("<color=#FFE040>FREE AIM ACTIVATED!</color> Aim for weak points.");
+
+            // 1. Blend Camera to over-the-shoulder
+            bool camReady = false;
+            if (_cameraController != null)
+            {
+                _cameraController.BlendToFreeAim(0.35f, () => camReady = true);
+            }
+            else
+            {
+                camReady = true;
+            }
+
+            while (!camReady)
+                yield return null;
+
+            // 2. Activate Free Aim HUD
+            Camera activeCam = (_cameraController != null && _cameraController.TargetCamera != null)
+                ? _cameraController.TargetCamera
+                : Camera.main;
+
+            if (_freeAimHUD != null)
+            {
+                _freeAimHUD.Show(activeCam);
+                _freeAimHUD.UpdateAmmo(_apPool.CurrentAP);
+            }
+
+            const float totalDuration = 4.0f;
+            float timer = totalDuration;
+            bool exitRequested = false;
+
+            Action<Vector2> handleFire = screenPos =>
+            {
+                if (!_apPool.CanSpend(1) || _enemyStats.IsDefeated)
+                    return;
+
+                _apPool.TrySpend(1);
+                _freeAimHUD?.UpdateAmmo(_apPool.CurrentAP);
+                _audioPlayer?.PlayGunshot();
+
+                // Fire raycast into 3D world
+                Ray ray = activeCam.ScreenPointToRay(screenPos);
+                if (Physics.Raycast(ray, out RaycastHit hit, 60f))
+                {
+                    var hitbox = hit.collider.GetComponent<CombatHitbox>();
+                    if (hitbox != null)
+                    {
+                        var (damage, isCrit) = FreeAimDamageCalculator.Calculate(_playerStats.AttackPower, hitbox.HitboxType, _enemyStats.Defense);
+                        _enemyStats.ApplyDamage(damage);
+
+                        _enemyView.PlayHitReact();
+                        _enemyView.FlashColor(isCrit ? Color.yellow : Color.red, 0.2f);
+                        _gameFeel?.TriggerHitStop(isCrit);
+                        _gameFeel?.TriggerCameraShake(isCrit ? 1.5f : 1f);
+
+                        if (isCrit)
+                        {
+                            _audioPlayer?.PlayWeakPointHit();
+                            FloatingCombatText.Spawn(hit.point, $"-{damage} [WEAK POINT CRIT!]", Color.yellow, 1.6f);
+                            _hud?.AddLog($"<color=#FFE838>★ WEAK POINT HIT! {damage} critical damage! ★</color>");
+                        }
+                        else
+                        {
+                            _audioPlayer?.PlayHit();
+                            FloatingCombatText.Spawn(hit.point, $"-{damage}", Color.white, 1.2f);
+                            _hud?.AddLog($"Gunshot dealt {damage} damage.");
+                        }
+
+                        if (_enemyStats.IsDefeated)
+                        {
+                            exitRequested = true;
+                        }
+                    }
+                    else
+                    {
+                        // Struck environment / missed
+                        FloatingCombatText.Spawn(hit.point, "MISS", Color.gray, 0.9f);
+                    }
+                }
+            };
+
+            Action handleCancel = () =>
+            {
+                exitRequested = true;
+            };
+
+            if (_freeAimHUD != null)
+            {
+                _freeAimHUD.OnFireRequested += handleFire;
+                _freeAimHUD.OnCancelRequested += handleCancel;
+            }
+
+            // Real-time Aim Loop
+            while (timer > 0f && !exitRequested && !_enemyStats.IsDefeated)
+            {
+                timer -= Time.deltaTime;
+
+                if (_freeAimHUD != null)
+                {
+                    _freeAimHUD.UpdateTimer(timer, totalDuration);
+
+                    // Hover detection for dynamic reticle highlight
+                    Ray hoverRay = activeCam.ScreenPointToRay(_freeAimHUD.CrosshairScreenPosition);
+                    if (Physics.Raycast(hoverRay, out RaycastHit hoverHit, 60f))
+                    {
+                        var hitbox = hoverHit.collider.GetComponent<CombatHitbox>();
+                        _freeAimHUD.SetTargetState(hitbox != null ? hitbox.HitboxType : null);
+                    }
+                    else
+                    {
+                        _freeAimHUD.SetTargetState(null);
+                    }
+                }
+
+                if (_apPool.CurrentAP <= 0)
+                {
+                    yield return new WaitForSeconds(0.4f);
+                    break;
+                }
+
+                yield return null;
+            }
+
+            // Cleanup & Exit
+            if (_freeAimHUD != null)
+            {
+                _freeAimHUD.OnFireRequested -= handleFire;
+                _freeAimHUD.OnCancelRequested -= handleCancel;
+                _freeAimHUD.Hide();
+            }
+
+            bool camReturned = false;
+            if (_cameraController != null)
+            {
+                _cameraController.BlendToDefault(0.35f, () => camReturned = true);
+            }
+            else
+            {
+                camReturned = true;
+            }
+
+            while (!camReturned)
+                yield return null;
+
+            yield return new WaitForSeconds(0.3f);
         }
 
         private IEnumerator EnemyTurnRoutine()
@@ -528,7 +698,7 @@ namespace Expedition33.Combat
             switch (outcome)
             {
                 case DefenseOutcome.ParrySuccess:
-                    _apPool.Generate(2); // Perfect parry reward: +2 AP!
+                    _apPool.Generate(2);
                     _audioPlayer?.PlayAPGain();
                     _audioPlayer?.PlayParrySuccess();
                     _gameFeel?.TriggerHitStop(true);
@@ -569,7 +739,7 @@ namespace Expedition33.Combat
                     break;
 
                 case DefenseOutcome.DodgeSuccess:
-                    _apPool.Generate(1); // Dodge reward: +1 AP!
+                    _apPool.Generate(1);
                     _audioPlayer?.PlayAPGain();
                     _playerView.PlayDodge();
                     _audioPlayer?.PlayDodgeSuccess();
@@ -584,7 +754,7 @@ namespace Expedition33.Combat
                     break;
 
                 case DefenseOutcome.JumpSuccess:
-                    _apPool.Generate(1); // Jump reward: +1 AP!
+                    _apPool.Generate(1);
                     _audioPlayer?.PlayAPGain();
                     _playerView.PlayJump();
                     _audioPlayer?.PlayJumpSuccess();
@@ -626,6 +796,7 @@ namespace Expedition33.Combat
             {
                 _hud.OnAttackSelected -= HandlePlayerAttackSelected;
                 _hud.OnSkillSelected -= HandlePlayerSkillSelected;
+                _hud.OnFreeAimSelected -= HandlePlayerFreeAimSelected;
                 _hud.OnPassSelected -= HandlePlayerPassSelected;
             }
         }

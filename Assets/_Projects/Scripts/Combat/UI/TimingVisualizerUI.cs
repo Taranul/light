@@ -26,6 +26,8 @@ namespace Expedition33.Combat
         [SerializeField] private TMP_Text _promptText;
         [SerializeField] private TMP_Text _resultText;
 
+        private bool _isActive;
+
         private void Awake()
         {
             if (_container == null)
@@ -33,7 +35,11 @@ namespace Expedition33.Combat
                 _container = gameObject;
             }
 
-            Hide();
+            if (!_isActive)
+            {
+                if (_container != null)
+                    _container.SetActive(false);
+            }
         }
 
         public void Show(
@@ -43,6 +49,7 @@ namespace Expedition33.Combat
             float parryNormalizedHalfWidth,
             float dodgeNormalizedHalfWidth)
         {
+            _isActive = true;
             if (_container != null)
                 _container.SetActive(true);
 

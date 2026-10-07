@@ -39,11 +39,16 @@ namespace Expedition33.Combat
                 _container = gameObject;
             }
 
-            Hide();
+            if (!_isActive)
+            {
+                if (_container != null)
+                    _container.SetActive(false);
+            }
         }
 
         public void StartQTE(QTEWindowDefinition config, Vector3 worldTargetPos, Action<QTEOutcome> onComplete)
         {
+            _isActive = true;
             _currentConfig = config ?? new QTEWindowDefinition();
             _elapsed = 0f;
             _inputCaptured = false;

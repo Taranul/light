@@ -18,6 +18,8 @@ namespace Expedition33.Combat
         private AudioClip _telegraphClip;
         private AudioClip _qteSuccessClip;
         private AudioClip _apGainClip;
+        private AudioClip _gunshotClip;
+        private AudioClip _weakPointClip;
 
         private void Awake()
         {
@@ -85,6 +87,16 @@ namespace Expedition33.Combat
             PlayClip(_apGainClip, 0.65f);
         }
 
+        public void PlayGunshot()
+        {
+            PlayClip(_gunshotClip, 0.95f);
+        }
+
+        public void PlayWeakPointHit()
+        {
+            PlayClip(_weakPointClip, 1.0f);
+        }
+
         private void PlayClip(AudioClip clip, float volume)
         {
             if (clip != null && _audioSource != null)
@@ -118,6 +130,32 @@ namespace Expedition33.Combat
 
             // AP gain energy pip (upward double chirp)
             _apGainClip = CreateSweepTone(400f, 800f, 0.09f);
+
+            // Gunshot crack (explosive noise burst + sharp decay)
+            _gunshotClip = CreateNoiseBurst(0.14f, 0.9f);
+
+            // Weak point critical shatter (crystal ding)
+            _weakPointClip = CreateMetallicRing(1600f, 0.25f);
+        }
+
+        private AudioClip CreateNoiseBurst(float duration, float volume)
+        {
+            int sampleRate = 44100;
+            int sampleCount = Mathf.CeilToInt(sampleRate * duration);
+            float[] samples = new float[sampleCount];
+
+            for (int i = 0; i < sampleCount; i++)
+            {
+                float t = (float)i / sampleCount;
+                float decay = Mathf.Exp(-9f * t);
+                float noise = (Random.value * 2f - 1f);
+                float sub = Mathf.Sin(2f * Mathf.PI * 90f * ((float)i / sampleRate)) * 0.4f;
+                samples[i] = (noise * 0.7f + sub) * decay * volume;
+            }
+
+            AudioClip clip = AudioClip.Create("Gunshot", sampleCount, 1, sampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
         }
 
         private AudioClip CreateTone(float frequency, float duration, float volume, bool noiseDecay)

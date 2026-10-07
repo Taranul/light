@@ -28,6 +28,7 @@ namespace Expedition33.Combat
         [SerializeField] private GameObject _commandMenuRoot;
         [SerializeField] private Button _attackButton;
         [SerializeField] private Button _skillsButton;
+        [SerializeField] private Button _freeAimButton;
         [SerializeField] private Button _passButton;
 
         [Header("Skill Submenu")]
@@ -42,6 +43,7 @@ namespace Expedition33.Combat
         public event Action OnAttackSelected;
         public event Action OnSkillsMenuRequested;
         public event Action<SkillDefinitionSO> OnSkillSelected;
+        public event Action OnFreeAimSelected;
         public event Action OnPassSelected;
 
         private ActionPointPool _trackedApPool;
@@ -62,6 +64,11 @@ namespace Expedition33.Combat
                     OnSkillsMenuRequested?.Invoke();
                     ShowSkillMenu(true);
                 });
+            }
+
+            if (_freeAimButton != null)
+            {
+                _freeAimButton.onClick.AddListener(() => OnFreeAimSelected?.Invoke());
             }
 
             if (_passButton != null)
@@ -210,6 +217,12 @@ namespace Expedition33.Combat
 
             if (_skillsButton != null)
                 _skillsButton.interactable = visible;
+
+            if (_freeAimButton != null)
+            {
+                bool canAffordAim = _trackedApPool != null && _trackedApPool.CanSpend(1);
+                _freeAimButton.interactable = visible && canAffordAim;
+            }
 
             if (_passButton != null)
                 _passButton.interactable = visible;

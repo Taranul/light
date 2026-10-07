@@ -37,6 +37,10 @@ namespace Expedition33.EditorTools
             camGo.AddComponent<AudioListener>();
             camGo.transform.position = new Vector3(0f, 3.2f, -6f);
             camGo.transform.rotation = Quaternion.Euler(20f, 0f, 0f);
+            var camController = camGo.AddComponent<CombatCameraController>();
+            var soCam = new SerializedObject(camController);
+            soCam.FindProperty("_targetCamera").objectReferenceValue = cam;
+            soCam.ApplyModifiedPropertiesWithoutUndo();
 
             // 3. Characters
             var modelAsset = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Projects/Models/Idle.fbx");
@@ -61,6 +65,24 @@ namespace Expedition33.EditorTools
             if (eAnimator == null) eAnimator = enemyGo.AddComponent<Animator>();
             eAnimator.runtimeAnimatorController = animController;
             var eView = enemyGo.AddComponent<CombatActorView>();
+
+            // Enemy Hitboxes (Milestone 4: Free Aim targets)
+            var enemyCapsule = enemyGo.AddComponent<CapsuleCollider>();
+            enemyCapsule.center = new Vector3(0f, 0.95f, 0f);
+            enemyCapsule.radius = 0.35f;
+            enemyCapsule.height = 1.9f;
+            var bodyHitbox = enemyGo.AddComponent<CombatHitbox>();
+            bodyHitbox.Initialize(HitboxType.Body, eView);
+
+            Transform headBone = FindChildRecursive(enemyGo.transform, "Head");
+            if (headBone != null)
+            {
+                var headSphere = headBone.gameObject.AddComponent<SphereCollider>();
+                headSphere.radius = 0.22f;
+                headSphere.center = new Vector3(0f, 0.08f, 0f);
+                var headHitbox = headBone.gameObject.AddComponent<CombatHitbox>();
+                headHitbox.Initialize(HitboxType.WeakPoint, eView);
+            }
 
             // 4. UI Canvas & EventSystem
             var eventSystemGo = new GameObject("EventSystem");
@@ -282,7 +304,7 @@ namespace Expedition33.EditorTools
             cmdMenu.transform.SetParent(canvasGo.transform, false);
             var cmRect = cmdMenu.AddComponent<RectTransform>();
             cmRect.anchorMin = new Vector2(0.76f, 0.04f);
-            cmRect.anchorMax = new Vector2(0.97f, 0.22f);
+            cmRect.anchorMax = new Vector2(0.97f, 0.27f);
             cmRect.offsetMin = Vector2.zero;
             cmRect.offsetMax = Vector2.zero;
             var cmVlg = cmdMenu.AddComponent<VerticalLayoutGroup>();
@@ -325,6 +347,23 @@ namespace Expedition33.EditorTools
             sktComp.alignment = TextAlignmentOptions.Center;
             sktComp.fontSize = 19;
             sktComp.fontStyle = FontStyles.Bold;
+
+            // Free Aim Button
+            var freeAimBtnObj = new GameObject("Button_FreeAim");
+            freeAimBtnObj.transform.SetParent(cmdMenu.transform, false);
+            var faImg = freeAimBtnObj.AddComponent<Image>();
+            faImg.color = new Color(0.16f, 0.28f, 0.40f, 0.95f);
+            var faBtn = freeAimBtnObj.AddComponent<Button>();
+            var faTm = new GameObject("Text");
+            faTm.transform.SetParent(freeAimBtnObj.transform, false);
+            var fatRect = faTm.AddComponent<RectTransform>();
+            fatRect.anchorMin = Vector2.zero;
+            fatRect.anchorMax = Vector2.one;
+            var fatComp = faTm.AddComponent<TextMeshProUGUI>();
+            fatComp.text = "FREE AIM  <color=#00D0FF>[1 AP]</color>";
+            fatComp.alignment = TextAlignmentOptions.Center;
+            fatComp.fontSize = 19;
+            fatComp.fontStyle = FontStyles.Bold;
 
             // Pass Button
             var passBtnObj = new GameObject("Button_Pass");
@@ -545,6 +584,149 @@ namespace Expedition33.EditorTools
             soQte.FindProperty("_resultText").objectReferenceValue = qreText;
             soQte.ApplyModifiedPropertiesWithoutUndo();
 
+            // 7. Free Aim HUD Overlay
+            var freeAimHudObj = new GameObject("FreeAimHUD");
+            freeAimHudObj.transform.SetParent(canvasGo.transform, false);
+            var faHudRect = freeAimHudObj.AddComponent<RectTransform>();
+            faHudRect.anchorMin = Vector2.zero;
+            faHudRect.anchorMax = Vector2.one;
+            faHudRect.offsetMin = Vector2.zero;
+            faHudRect.offsetMax = Vector2.zero;
+            var freeAimComp = freeAimHudObj.AddComponent<FreeAimHUD>();
+
+            var faTopPanel = new GameObject("TopPanel");
+            faTopPanel.transform.SetParent(freeAimHudObj.transform, false);
+            var fatpRect = faTopPanel.AddComponent<RectTransform>();
+            fatpRect.anchorMin = new Vector2(0.35f, 0.86f);
+            fatpRect.anchorMax = new Vector2(0.65f, 0.94f);
+            fatpRect.offsetMin = Vector2.zero;
+            fatpRect.offsetMax = Vector2.zero;
+            var fatpBg = faTopPanel.AddComponent<Image>();
+            fatpBg.color = new Color(0.06f, 0.08f, 0.12f, 0.88f);
+
+            var faTimerTrack = new GameObject("TimerTrack");
+            faTimerTrack.transform.SetParent(faTopPanel.transform, false);
+            var fattRect = faTimerTrack.AddComponent<RectTransform>();
+            fattRect.anchorMin = new Vector2(0.05f, 0.55f);
+            fattRect.anchorMax = new Vector2(0.95f, 0.85f);
+            fattRect.offsetMin = Vector2.zero;
+            fattRect.offsetMax = Vector2.zero;
+            var fattBg = faTimerTrack.AddComponent<Image>();
+            fattBg.color = new Color(0.12f, 0.16f, 0.22f, 1f);
+
+            var faTimerFill = new GameObject("TimerFill");
+            faTimerFill.transform.SetParent(faTimerTrack.transform, false);
+            var fatfRect = faTimerFill.AddComponent<RectTransform>();
+            fatfRect.anchorMin = Vector2.zero;
+            fatfRect.anchorMax = Vector2.one;
+            fatfRect.offsetMin = Vector2.zero;
+            fatfRect.offsetMax = Vector2.zero;
+            var fatfImg = faTimerFill.AddComponent<Image>();
+            fatfImg.type = Image.Type.Filled;
+            fatfImg.fillMethod = Image.FillMethod.Horizontal;
+            fatfImg.fillOrigin = (int)Image.OriginHorizontal.Left;
+            fatfImg.fillAmount = 1f;
+            fatfImg.color = new Color(0.2f, 0.8f, 1f, 1f);
+
+            var faTimerTextObj = new GameObject("TimerText");
+            faTimerTextObj.transform.SetParent(faTopPanel.transform, false);
+            var fttRect = faTimerTextObj.AddComponent<RectTransform>();
+            fttRect.anchorMin = new Vector2(0.05f, 0.08f);
+            fttRect.anchorMax = new Vector2(0.48f, 0.50f);
+            fttRect.offsetMin = Vector2.zero;
+            fttRect.offsetMax = Vector2.zero;
+            var fttComp = faTimerTextObj.AddComponent<TextMeshProUGUI>();
+            fttComp.fontSize = 20;
+            fttComp.fontStyle = FontStyles.Bold;
+            fttComp.alignment = TextAlignmentOptions.MidlineLeft;
+            fttComp.text = "4.0s";
+
+            var faAmmoTextObj = new GameObject("AmmoText");
+            faAmmoTextObj.transform.SetParent(faTopPanel.transform, false);
+            var fatTextRect = faAmmoTextObj.AddComponent<RectTransform>();
+            fatTextRect.anchorMin = new Vector2(0.50f, 0.08f);
+            fatTextRect.anchorMax = new Vector2(0.95f, 0.50f);
+            fatTextRect.offsetMin = Vector2.zero;
+            fatTextRect.offsetMax = Vector2.zero;
+            var fatTextComp = faAmmoTextObj.AddComponent<TextMeshProUGUI>();
+            fatTextComp.fontSize = 19;
+            fatTextComp.alignment = TextAlignmentOptions.MidlineRight;
+            fatTextComp.text = "SHOTS: <b>2</b> [1 AP / SHOT]";
+
+            var faPromptObj = new GameObject("WeakPointPrompt");
+            faPromptObj.transform.SetParent(freeAimHudObj.transform, false);
+            var fapRect = faPromptObj.AddComponent<RectTransform>();
+            fapRect.anchorMin = new Vector2(0.3f, 0.77f);
+            fapRect.anchorMax = new Vector2(0.7f, 0.84f);
+            fapRect.offsetMin = Vector2.zero;
+            fapRect.offsetMax = Vector2.zero;
+            var fapText = faPromptObj.AddComponent<TextMeshProUGUI>();
+            fapText.fontSize = 24;
+            fapText.fontStyle = FontStyles.Bold;
+            fapText.alignment = TextAlignmentOptions.Center;
+            fapText.text = "";
+
+            var faCtrlObj = new GameObject("ControlsPrompt");
+            faCtrlObj.transform.SetParent(freeAimHudObj.transform, false);
+            var facRect = faCtrlObj.AddComponent<RectTransform>();
+            facRect.anchorMin = new Vector2(0.2f, 0.04f);
+            facRect.anchorMax = new Vector2(0.8f, 0.10f);
+            facRect.offsetMin = Vector2.zero;
+            facRect.offsetMax = Vector2.zero;
+            var facText = faCtrlObj.AddComponent<TextMeshProUGUI>();
+            facText.fontSize = 20;
+            facText.alignment = TextAlignmentOptions.Center;
+            facText.text = "<b>[LEFT CLICK]</b> FIRE (1 AP)   |   <b>[RIGHT CLICK / ESC]</b> FINISH";
+
+            // Procedural Targeting Reticle
+            var reticleTex = new Texture2D(64, 64, TextureFormat.RGBA32, false);
+            reticleTex.filterMode = FilterMode.Bilinear;
+            for (int y = 0; y < 64; y++)
+            {
+                for (int x = 0; x < 64; x++)
+                {
+                    float dist = Vector2.Distance(new Vector2(x, y), new Vector2(31.5f, 31.5f));
+                    bool isOuterRing = dist >= 22f && dist <= 25f;
+                    bool isCrosshairTick = (dist >= 12f && dist <= 29f) && (Mathf.Abs(x - 31.5f) <= 1f || Mathf.Abs(y - 31.5f) <= 1f);
+                    bool isCenterDot = dist <= 3f;
+                    if (isOuterRing || isCrosshairTick || isCenterDot)
+                        reticleTex.SetPixel(x, y, Color.white);
+                    else
+                        reticleTex.SetPixel(x, y, Color.clear);
+                }
+            }
+            reticleTex.Apply();
+            var reticleSprite = Sprite.Create(reticleTex, new Rect(0, 0, 64, 64), new Vector2(0.5f, 0.5f));
+
+            var crosshairObj = new GameObject("Crosshair");
+            crosshairObj.transform.SetParent(freeAimHudObj.transform, false);
+            var crossRect = crosshairObj.AddComponent<RectTransform>();
+            crossRect.sizeDelta = new Vector2(64f, 64f);
+            var crossImg = crosshairObj.AddComponent<Image>();
+            crossImg.sprite = reticleSprite;
+            crossImg.color = new Color(1f, 1f, 1f, 0.9f);
+
+            var dotObj = new GameObject("CenterDot");
+            dotObj.transform.SetParent(crosshairObj.transform, false);
+            var dotRect = dotObj.AddComponent<RectTransform>();
+            dotRect.sizeDelta = new Vector2(4f, 4f);
+            var dotImg = dotObj.AddComponent<Image>();
+            dotImg.color = new Color(1f, 0.2f, 0.2f, 0.95f);
+
+            var soFa = new SerializedObject(freeAimComp);
+            soFa.FindProperty("_container").objectReferenceValue = freeAimHudObj;
+            soFa.FindProperty("_crosshairRect").objectReferenceValue = crossRect;
+            soFa.FindProperty("_crosshairImage").objectReferenceValue = crossImg;
+            soFa.FindProperty("_crosshairCenterDot").objectReferenceValue = dotImg;
+            soFa.FindProperty("_timerFillImage").objectReferenceValue = fatfImg;
+            soFa.FindProperty("_timerText").objectReferenceValue = fttComp;
+            soFa.FindProperty("_ammoText").objectReferenceValue = fatTextComp;
+            soFa.FindProperty("_weakPointPromptText").objectReferenceValue = fapText;
+            soFa.FindProperty("_controlsPromptText").objectReferenceValue = facText;
+            soFa.ApplyModifiedPropertiesWithoutUndo();
+
+            freeAimHudObj.SetActive(false);
+
             // Wire CombatHUD SerializedObject
             var soHud = new SerializedObject(hud);
             soHud.FindProperty("_playerHpFill").objectReferenceValue = phpFillImg;
@@ -559,6 +741,7 @@ namespace Expedition33.EditorTools
             soHud.FindProperty("_commandMenuRoot").objectReferenceValue = cmdMenu;
             soHud.FindProperty("_attackButton").objectReferenceValue = atkBtn;
             soHud.FindProperty("_skillsButton").objectReferenceValue = skBtn;
+            soHud.FindProperty("_freeAimButton").objectReferenceValue = faBtn;
             soHud.FindProperty("_passButton").objectReferenceValue = passBtn;
             soHud.FindProperty("_skillMenuRoot").objectReferenceValue = skillMenuPanel;
             soHud.FindProperty("_skillButtonsContainer").objectReferenceValue = skillContainer.transform;
@@ -597,7 +780,7 @@ namespace Expedition33.EditorTools
                 AssetDatabase.CreateAsset(patternSweep, dataDir + "/Attack_GroundSweep.asset");
             }
 
-            // 7. Managers Object
+            // 8. Managers Object
             var mgrObj = new GameObject("BattleManagers");
             var audioPlayer = mgrObj.AddComponent<CombatAudioPlayer>();
             var gameFeel = mgrObj.AddComponent<GameFeelManager>();
@@ -615,6 +798,8 @@ namespace Expedition33.EditorTools
             soBattle.FindProperty("_inputBuffer").objectReferenceValue = inputBuf;
             soBattle.FindProperty("_timingVisualizer").objectReferenceValue = timingComp;
             soBattle.FindProperty("_qteWidget").objectReferenceValue = qteComp;
+            soBattle.FindProperty("_cameraController").objectReferenceValue = camController;
+            soBattle.FindProperty("_freeAimHUD").objectReferenceValue = freeAimComp;
 
             var skillsProp = soBattle.FindProperty("_playerSkills");
             skillsProp.arraySize = 2;
@@ -630,7 +815,21 @@ namespace Expedition33.EditorTools
 
             // Save Scene
             EditorSceneManager.SaveScene(newScene, "Assets/_Projects/Scenes/CombatSandbox.unity");
-            Debug.Log("[CombatSandboxBuilder] Scene rebuilt with polished UI hierarchy!");
+            Debug.Log("[CombatSandboxBuilder] Scene rebuilt with polished UI hierarchy and Free Aim support!");
+        }
+
+        private static Transform FindChildRecursive(Transform parent, string partialName)
+        {
+            foreach (Transform child in parent)
+            {
+                if (child.name.IndexOf(partialName, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    return child;
+
+                var found = FindChildRecursive(child, partialName);
+                if (found != null)
+                    return found;
+            }
+            return null;
         }
     }
 }
