@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cdab9f06408e1b24a9bd423006a4a216, type: 3}
+  m_Name: Attack_StalkerClaw
+  m_EditorClassIdentifier: Expedition33.Combat::Expedition33.Combat.EnemyAttackPatternSO
+  _attackName: Stalker Claw Combo
+  _windupDuration: 0.8
+  _telegraphType: 0
+  _strikes:
+  - _hitTimeOffset: 1
+    _parryHalfWindow: 0.1
+    _dodgeHalfWindow: 0.2
+    _jumpHalfWindow: 0.22
+    _damage: 22
+    _telegraphType: 0

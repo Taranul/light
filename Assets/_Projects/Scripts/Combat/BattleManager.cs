@@ -18,6 +18,11 @@ namespace Expedition33.Combat
         [SerializeField] private CombatHUD _hud;
         [SerializeField] private CombatAudioPlayer _audioPlayer;
         [SerializeField] private GameFeelManager _gameFeel;
+        [SerializeField] private InputBuffer _inputBuffer;
+        [SerializeField] private TimingVisualizerUI _timingVisualizer;
+
+        [Header("Enemy Attack Patterns")]
+        [SerializeField] private EnemyAttackPatternSO[] _enemyAttackPatterns;
 
         private BattleStateMachine _stateMachine;
         private TurnTimeline _timeline;
@@ -26,6 +31,11 @@ namespace Expedition33.Combat
 
         private bool _playerActionChosen;
         private CombatActionType _selectedAction;
+        private int _enemyTurnCounter;
+
+        public CombatActorStats PlayerStats => _playerStats;
+        public CombatActorStats EnemyStats => _enemyStats;
+        public BattleStateMachine StateMachine => _stateMachine;
 
         private void Start()
         {
@@ -57,9 +67,15 @@ namespace Expedition33.Combat
                 _enemyStats = new CombatActorStats("Expedition Stalker", 90, 18, 4, 9, false);
             }
 
+            // Ensure fallback default patterns if none configured
+            if (_enemyAttackPatterns == null || _enemyAttackPatterns.Length == 0)
+            {
+                CreateFallbackPatterns();
+            }
+
             // Setup views
             Color playerTint = _playerData != null ? _playerData.TintColor : new Color(0.85f, 0.95f, 1f);
-            Color enemyTint = _enemyData != null ? _enemyData.TintColor : new Color(1f, 0.6f, 0.6f);
+            Color enemyTint = _enemyData != null ? _enemyData.TintColor : new Color(1f, 0.55f, 0.55f);
 
             _playerView.Initialize(_playerStats, playerTint);
             _enemyView.Initialize(_enemyStats, enemyTint);
@@ -83,6 +99,13 @@ namespace Expedition33.Combat
             RefreshTimelineHUD();
 
             StartCoroutine(BattleRoutine());
+        }
+
+        private void CreateFallbackPatterns()
+        {
+            var p1 = EnemyAttackPatternSO.CreateDefaultPattern("Stalker Claw Combo", AttackTelegraphType.Standard, 1.0f, 22);
+            var p2 = EnemyAttackPatternSO.CreateDefaultPattern("Ground Shockwave", AttackTelegraphType.GroundSweep, 1.1f, 26);
+            _enemyAttackPatterns = new[] { p1, p2 };
         }
 
         private void HandlePlayerAttackSelected()
@@ -171,7 +194,7 @@ namespace Expedition33.Combat
 
             if (_selectedAction == CombatActionType.Attack)
             {
-                yield return ExecuteActorAttack(_playerView, _enemyView, _playerStats, _enemyStats);
+                yield return ExecutePlayerAttack();
             }
             else
             {
@@ -180,63 +203,256 @@ namespace Expedition33.Combat
             }
         }
 
-        private IEnumerator EnemyTurnRoutine()
-        {
-            _stateMachine.ChangeState(BattleState.EnemyTurn);
-            _hud?.SetTurnBanner("ENEMY TURN");
-            _hud?.AddLog($"{_enemyStats.Name} prepares to strike!");
-            yield return new WaitForSeconds(0.8f);
-
-            _stateMachine.ChangeState(BattleState.ActionExecuting);
-            yield return ExecuteActorAttack(_enemyView, _playerView, _enemyStats, _playerStats);
-        }
-
-        private IEnumerator ExecuteActorAttack(
-            CombatActorView attacker,
-            CombatActorView defender,
-            CombatActorStats attackerStats,
-            CombatActorStats defenderStats)
+        private IEnumerator ExecutePlayerAttack()
         {
             bool arrived = false;
-            attacker.AnimateApproach(defender.HomePosition, 0.45f, () => arrived = true);
+            _playerView.AnimateApproach(_enemyView.HomePosition, 0.45f, () => arrived = true);
             while (!arrived)
                 yield return null;
 
-            attacker.PlayAttack();
-
-            // Wait for strike frame (roughly 0.75s in Surprise Uppercut clip)
+            _playerView.PlayAttack();
             yield return new WaitForSeconds(0.75f);
 
-            DamageResult result = DamageCalculator.CalculateDamage(attackerStats, defenderStats, 1f, false);
-            defenderStats.ApplyDamage(result.MitigatedDamage);
+            DamageResult result = DamageCalculator.CalculateDamage(_playerStats, _enemyStats, 1f, false);
+            _enemyStats.ApplyDamage(result.MitigatedDamage);
 
-            // Feedback
-            defender.PlayHitReact();
-            defender.FlashColor(Color.red, 0.2f);
+            _enemyView.PlayHitReact();
+            _enemyView.FlashColor(Color.red, 0.2f);
             _audioPlayer?.PlayHit();
             _gameFeel?.TriggerHitStop(result.IsCritical);
             _gameFeel?.TriggerCameraShake(1f);
 
             FloatingCombatText.Spawn(
-                defender.transform.position,
+                _enemyView.transform.position,
                 $"-{result.MitigatedDamage}",
-                result.IsCritical ? Color.yellow : Color.white,
-                result.IsCritical ? 1.3f : 1f
+                result.IsCritical ? Color.yellow : Color.white
             );
 
-            _hud?.AddLog($"{attackerStats.Name} dealt {result.MitigatedDamage} damage to {defenderStats.Name}!");
-
+            _hud?.AddLog($"{_playerStats.Name} dealt {result.MitigatedDamage} damage to {_enemyStats.Name}!");
             yield return new WaitForSeconds(0.4f);
 
-            if (!defenderStats.IsDefeated)
+            if (!_enemyStats.IsDefeated)
             {
-                defender.PlayIdle();
+                _enemyView.PlayIdle();
             }
 
             bool returned = false;
-            attacker.AnimateReturn(0.4f, () => returned = true);
+            _playerView.AnimateReturn(0.4f, () => returned = true);
             while (!returned)
                 yield return null;
+        }
+
+        private IEnumerator EnemyTurnRoutine()
+        {
+            _stateMachine.ChangeState(BattleState.EnemyTurn);
+            _hud?.SetTurnBanner("ENEMY TURN");
+
+            // Alternate between attack patterns
+            EnemyAttackPatternSO pattern = _enemyAttackPatterns[_enemyTurnCounter % _enemyAttackPatterns.Length];
+            _enemyTurnCounter++;
+
+            _hud?.AddLog($"Incoming attack: <color=#FF6644>{pattern.AttackName}</color>!");
+            yield return new WaitForSeconds(0.6f);
+
+            _stateMachine.ChangeState(BattleState.ActionExecuting);
+            yield return ExecuteEnemyAttackPatternWithActiveDefense(pattern);
+        }
+
+        private IEnumerator ExecuteEnemyAttackPatternWithActiveDefense(EnemyAttackPatternSO pattern)
+        {
+            bool arrived = false;
+            _enemyView.AnimateApproach(_playerView.HomePosition, 0.42f, () => arrived = true);
+            while (!arrived)
+                yield return null;
+
+            foreach (HitWindowDefinition strike in pattern.Strikes)
+            {
+                if (_playerStats.IsDefeated)
+                    break;
+
+                // Setup visualizer
+                float totalStrikeDuration = strike.HitTimeOffset + 0.35f;
+                float hitNormalized = strike.HitTimeOffset / totalStrikeDuration;
+                float parryHalfNormalized = strike.ParryHalfWindow / totalStrikeDuration;
+                float dodgeHalfNormalized = strike.DodgeHalfWindow / totalStrikeDuration;
+
+                if (_timingVisualizer != null)
+                {
+                    _timingVisualizer.Show(
+                        pattern.AttackName,
+                        strike.TelegraphType,
+                        hitNormalized,
+                        parryHalfNormalized,
+                        dodgeHalfNormalized
+                    );
+                }
+
+                _enemyView.PlayAttack();
+                _audioPlayer?.PlayTelegraphWindup();
+
+                if (_inputBuffer != null)
+                {
+                    _inputBuffer.Clear();
+                    _inputBuffer.SetListening(true);
+                }
+
+                float elapsed = 0f;
+                DefenseActionType capturedAction = DefenseActionType.None;
+                float capturedTimestamp = -1f;
+
+                // Telegraph windup loop
+                while (elapsed < strike.HitTimeOffset)
+                {
+                    elapsed += Time.deltaTime;
+                    float progress = Mathf.Clamp01(elapsed / totalStrikeDuration);
+
+                    if (_timingVisualizer != null)
+                    {
+                        _timingVisualizer.SetCursorProgress(progress);
+                    }
+
+                    // Continuously check for buffered defense input
+                    if (_inputBuffer != null && capturedAction == DefenseActionType.None)
+                    {
+                        if (_inputBuffer.TryConsumeInput(elapsed, out DefenseActionType action, out float ts))
+                        {
+                            capturedAction = action;
+                            capturedTimestamp = elapsed; // relative time of input
+                        }
+                    }
+
+                    yield return null;
+                }
+
+                if (_inputBuffer != null)
+                {
+                    _inputBuffer.SetListening(false);
+                }
+
+                // Evaluate outcome
+                DefenseOutcome outcome = ActiveDefenseEvaluator.Evaluate(
+                    capturedAction,
+                    capturedTimestamp,
+                    strike.HitTimeOffset,
+                    strike
+                );
+
+                if (_timingVisualizer != null)
+                {
+                    _timingVisualizer.ShowResult(outcome);
+                }
+
+                // Resolve outcome
+                yield return ResolveDefenseOutcome(outcome, strike);
+                yield return new WaitForSeconds(0.4f);
+            }
+
+            if (_timingVisualizer != null)
+            {
+                _timingVisualizer.Hide();
+            }
+
+            if (!_playerStats.IsDefeated)
+            {
+                _playerView.PlayIdle();
+            }
+
+            bool returned = false;
+            _enemyView.AnimateReturn(0.4f, () => returned = true);
+            while (!returned)
+                yield return null;
+        }
+
+        private IEnumerator ResolveDefenseOutcome(DefenseOutcome outcome, HitWindowDefinition strike)
+        {
+            switch (outcome)
+            {
+                case DefenseOutcome.ParrySuccess:
+                    _audioPlayer?.PlayParrySuccess();
+                    _gameFeel?.TriggerHitStop(true);
+                    _gameFeel?.TriggerCameraShake(1.6f);
+
+                    FloatingCombatText.Spawn(
+                        _playerView.transform.position,
+                        "PERFECT PARRY!",
+                        Color.green,
+                        1.4f
+                    );
+                    _hud?.AddLog("<color=#00FF88>★ PERFECT PARRY! Counter-strike triggered! ★</color>");
+
+                    yield return new WaitForSeconds(0.2f);
+
+                    // Immediate Counter-Attack
+                    bool counterComplete = false;
+                    _playerView.PlayCounterAttack(_enemyView.transform.position, () =>
+                    {
+                        int counterDmg = Mathf.RoundToInt(_playerStats.AttackPower * 1.4f);
+                        _enemyStats.ApplyDamage(counterDmg);
+                        _enemyView.PlayHitReact();
+                        _enemyView.FlashColor(Color.yellow, 0.2f);
+                        _audioPlayer?.PlayHit();
+                        _gameFeel?.TriggerHitStop(false);
+                        _gameFeel?.TriggerCameraShake(1.1f);
+
+                        FloatingCombatText.Spawn(
+                            _enemyView.transform.position,
+                            $"-{counterDmg} [COUNTER]",
+                            Color.yellow,
+                            1.3f
+                        );
+                        _hud?.AddLog($"Gustave counter-attacked for {counterDmg} damage!");
+                    }, () => counterComplete = true);
+
+                    while (!counterComplete)
+                        yield return null;
+                    break;
+
+                case DefenseOutcome.DodgeSuccess:
+                    _playerView.PlayDodge();
+                    _audioPlayer?.PlayDodgeSuccess();
+                    FloatingCombatText.Spawn(
+                        _playerView.transform.position,
+                        "DODGED!",
+                        new Color(1f, 0.9f, 0.2f),
+                        1.2f
+                    );
+                    _hud?.AddLog("<color=#FFE040>Dodge successful! Damage completely evaded.</color>");
+                    yield return new WaitForSeconds(0.5f);
+                    break;
+
+                case DefenseOutcome.JumpSuccess:
+                    _playerView.PlayJump();
+                    _audioPlayer?.PlayJumpSuccess();
+                    FloatingCombatText.Spawn(
+                        _playerView.transform.position,
+                        "JUMPED!",
+                        new Color(0.3f, 0.8f, 1f),
+                        1.2f
+                    );
+                    _hud?.AddLog("<color=#40C0FF>Jump successful! Low sweep evaded.</color>");
+                    yield return new WaitForSeconds(0.6f);
+                    break;
+
+                default: // Miss or InvalidAction
+                    DamageResult result = DamageCalculator.CalculateDamage(_enemyStats, _playerStats, 1f, false);
+                    _playerStats.ApplyDamage(result.MitigatedDamage);
+
+                    _playerView.PlayHitReact();
+                    _playerView.FlashColor(Color.red, 0.22f);
+                    _audioPlayer?.PlayHit();
+                    _gameFeel?.TriggerHitStop(false);
+                    _gameFeel?.TriggerCameraShake(1f);
+
+                    FloatingCombatText.Spawn(
+                        _playerView.transform.position,
+                        $"-{result.MitigatedDamage}",
+                        Color.red,
+                        1f
+                    );
+                    _hud?.AddLog($"Gustave took {result.MitigatedDamage} damage!");
+                    yield return new WaitForSeconds(0.4f);
+                    break;
+            }
         }
 
         private void OnDestroy()

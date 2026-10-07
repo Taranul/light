@@ -279,6 +279,108 @@ namespace Expedition33.EditorTools
             logText.color = new Color(0.9f, 0.9f, 0.9f, 0.8f);
             logText.text = "Battle initialized.";
 
+            // 5. Timing Visualizer UI (Center Screen)
+            var timingObj = new GameObject("TimingVisualizer");
+            timingObj.transform.SetParent(canvasGo.transform, false);
+            var timingRect = timingObj.AddComponent<RectTransform>();
+            timingRect.anchorMin = new Vector2(0.25f, 0.36f);
+            timingRect.anchorMax = new Vector2(0.75f, 0.54f);
+            timingRect.offsetMin = Vector2.zero;
+            timingRect.offsetMax = Vector2.zero;
+            var timingComp = timingObj.AddComponent<TimingVisualizerUI>();
+
+            // Visualizer Prompt
+            var promptObj = new GameObject("PromptText");
+            promptObj.transform.SetParent(timingObj.transform, false);
+            var prRect = promptObj.AddComponent<RectTransform>();
+            prRect.anchorMin = new Vector2(0f, 0.65f);
+            prRect.anchorMax = new Vector2(1f, 1f);
+            prRect.offsetMin = Vector2.zero;
+            prRect.offsetMax = Vector2.zero;
+            var prText = promptObj.AddComponent<TextMeshProUGUI>();
+            prText.fontSize = 24;
+            prText.alignment = TextAlignmentOptions.Center;
+            prText.text = "[F] PARRY  |  [SPACE] DODGE";
+
+            // Bar Track
+            var trackObj = new GameObject("BarTrack");
+            trackObj.transform.SetParent(timingObj.transform, false);
+            var trRect = trackObj.AddComponent<RectTransform>();
+            trRect.anchorMin = new Vector2(0.05f, 0.35f);
+            trRect.anchorMax = new Vector2(0.95f, 0.60f);
+            trRect.offsetMin = Vector2.zero;
+            trRect.offsetMax = Vector2.zero;
+            var trImg = trackObj.AddComponent<Image>();
+            trImg.color = new Color(0.08f, 0.1f, 0.14f, 0.85f);
+
+            // Dodge Zone (yellow)
+            var dzObj = new GameObject("DodgeZone");
+            dzObj.transform.SetParent(trackObj.transform, false);
+            var dzRect = dzObj.AddComponent<RectTransform>();
+            dzRect.anchorMin = new Vector2(0.5f, 0f);
+            dzRect.anchorMax = new Vector2(0.5f, 1f);
+            dzRect.sizeDelta = new Vector2(120f, 0f);
+            var dzImg = dzObj.AddComponent<Image>();
+            dzImg.color = new Color(0.9f, 0.8f, 0.2f, 0.45f);
+
+            // Parry Zone (green)
+            var pzObj = new GameObject("ParryZone");
+            pzObj.transform.SetParent(trackObj.transform, false);
+            var pzRect = pzObj.AddComponent<RectTransform>();
+            pzRect.anchorMin = new Vector2(0.5f, 0f);
+            pzRect.anchorMax = new Vector2(0.5f, 1f);
+            pzRect.sizeDelta = new Vector2(40f, 0f);
+            var pzImg = pzObj.AddComponent<Image>();
+            pzImg.color = new Color(0f, 1f, 0.5f, 0.75f);
+
+            // Strike Target Line
+            var slObj = new GameObject("StrikeLine");
+            slObj.transform.SetParent(trackObj.transform, false);
+            var slRect = slObj.AddComponent<RectTransform>();
+            slRect.anchorMin = new Vector2(0.5f, -0.2f);
+            slRect.anchorMax = new Vector2(0.5f, 1.2f);
+            slRect.sizeDelta = new Vector2(4f, 0f);
+            var slImg = slObj.AddComponent<Image>();
+            slImg.color = Color.white;
+
+            // Cursor (approach indicator)
+            var curObj = new GameObject("Cursor");
+            curObj.transform.SetParent(trackObj.transform, false);
+            var curRect = curObj.AddComponent<RectTransform>();
+            curRect.anchorMin = new Vector2(0.5f, -0.3f);
+            curRect.anchorMax = new Vector2(0.5f, 1.3f);
+            curRect.sizeDelta = new Vector2(8f, 0f);
+            var curImg = curObj.AddComponent<Image>();
+            curImg.color = new Color(1f, 0.95f, 0.4f, 1f);
+
+            // Result Text
+            var resObj = new GameObject("ResultText");
+            resObj.transform.SetParent(timingObj.transform, false);
+            var resRect = resObj.AddComponent<RectTransform>();
+            resRect.anchorMin = new Vector2(0f, 0f);
+            resRect.anchorMax = new Vector2(1f, 0.32f);
+            resRect.offsetMin = Vector2.zero;
+            resRect.offsetMax = Vector2.zero;
+            var resText = resObj.AddComponent<TextMeshProUGUI>();
+            resText.fontSize = 28;
+            resText.fontStyle = FontStyles.Bold;
+            resText.alignment = TextAlignmentOptions.Center;
+
+            // Wire TimingVisualizer SerializedObject
+            var soTiming = new SerializedObject(timingComp);
+            soTiming.FindProperty("_container").objectReferenceValue = timingObj;
+            soTiming.FindProperty("_barTrackRect").objectReferenceValue = trRect;
+            soTiming.FindProperty("_cursorRect").objectReferenceValue = curRect;
+            soTiming.FindProperty("_dodgeZoneRect").objectReferenceValue = dzRect;
+            soTiming.FindProperty("_parryZoneRect").objectReferenceValue = pzRect;
+            soTiming.FindProperty("_strikeLineRect").objectReferenceValue = slRect;
+            soTiming.FindProperty("_parryZoneImage").objectReferenceValue = pzImg;
+            soTiming.FindProperty("_dodgeZoneImage").objectReferenceValue = dzImg;
+            soTiming.FindProperty("_cursorImage").objectReferenceValue = curImg;
+            soTiming.FindProperty("_promptText").objectReferenceValue = prText;
+            soTiming.FindProperty("_resultText").objectReferenceValue = resText;
+            soTiming.ApplyModifiedPropertiesWithoutUndo();
+
             // Wire up CombatHUD SerializedObject
             var soHud = new SerializedObject(hud);
             soHud.FindProperty("_playerHpSlider").objectReferenceValue = pSlider;
@@ -295,10 +397,19 @@ namespace Expedition33.EditorTools
             soHud.FindProperty("_battleLogText").objectReferenceValue = logText;
             soHud.ApplyModifiedPropertiesWithoutUndo();
 
-            // 5. Managers Object
+            // Create Attack Pattern Assets
+            string dataDir = "Assets/_Projects/Data/Combat";
+            var patternStandard = EnemyAttackPatternSO.CreateDefaultPattern("Stalker Claw Combo", AttackTelegraphType.Standard, 1.0f, 22);
+            AssetDatabase.CreateAsset(patternStandard, dataDir + "/Attack_StalkerClaw.asset");
+
+            var patternSweep = EnemyAttackPatternSO.CreateDefaultPattern("Ground Shockwave", AttackTelegraphType.GroundSweep, 1.1f, 26);
+            AssetDatabase.CreateAsset(patternSweep, dataDir + "/Attack_GroundSweep.asset");
+
+            // 6. Managers Object
             var mgrObj = new GameObject("BattleManagers");
             var audioPlayer = mgrObj.AddComponent<CombatAudioPlayer>();
             var gameFeel = mgrObj.AddComponent<GameFeelManager>();
+            var inputBuf = mgrObj.AddComponent<InputBuffer>();
             var battleMgr = mgrObj.AddComponent<BattleManager>();
 
             var soBattle = new SerializedObject(battleMgr);
@@ -309,11 +420,19 @@ namespace Expedition33.EditorTools
             soBattle.FindProperty("_hud").objectReferenceValue = hud;
             soBattle.FindProperty("_audioPlayer").objectReferenceValue = audioPlayer;
             soBattle.FindProperty("_gameFeel").objectReferenceValue = gameFeel;
+            soBattle.FindProperty("_inputBuffer").objectReferenceValue = inputBuf;
+            soBattle.FindProperty("_timingVisualizer").objectReferenceValue = timingComp;
+
+            var patternsProp = soBattle.FindProperty("_enemyAttackPatterns");
+            patternsProp.arraySize = 2;
+            patternsProp.GetArrayElementAtIndex(0).objectReferenceValue = patternStandard;
+            patternsProp.GetArrayElementAtIndex(1).objectReferenceValue = patternSweep;
+
             soBattle.ApplyModifiedPropertiesWithoutUndo();
 
             // Save Scene
             EditorSceneManager.SaveScene(newScene, "Assets/_Projects/Scenes/CombatSandbox.unity");
-            Debug.Log("[CombatSandboxBuilder] Scene created and saved to Assets/_Projects/Scenes/CombatSandbox.unity");
+            Debug.Log("[CombatSandboxBuilder] Scene updated with Milestone 2 Active Defense and saved to Assets/_Projects/Scenes/CombatSandbox.unity");
         }
     }
 }

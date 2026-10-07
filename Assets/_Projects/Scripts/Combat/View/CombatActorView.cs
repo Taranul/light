@@ -124,6 +124,28 @@ namespace Expedition33.Combat
                 });
         }
 
+        public void PlayCounterAttack(Vector3 targetPosition, Action onHit, Action onComplete)
+        {
+            _moveTween?.Kill();
+
+            Vector3 direction = (targetPosition - transform.position).normalized;
+            Vector3 strikePos = targetPosition - direction * 1.4f;
+            strikePos.y = _homePosition.y;
+
+            transform.DOLookAt(targetPosition, 0.08f, AxisConstraint.Y);
+            _moveTween = transform.DOMove(strikePos, 0.16f)
+                .SetEase(Ease.OutBack)
+                .OnComplete(() =>
+                {
+                    PlayAttack();
+                    DOVirtual.DelayedCall(0.35f, () => onHit?.Invoke());
+                    DOVirtual.DelayedCall(0.7f, () =>
+                    {
+                        AnimateReturn(0.3f, onComplete);
+                    });
+                });
+        }
+
         public void FlashColor(Color color, float duration = 0.18f)
         {
             if (_renderers == null)
