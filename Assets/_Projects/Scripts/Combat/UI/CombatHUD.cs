@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -9,21 +10,19 @@ namespace Expedition33.Combat
     public class CombatHUD : MonoBehaviour
     {
         [Header("Player Status")]
-        [SerializeField] private Slider _playerHpSlider;
+        [SerializeField] private Image _playerHpFill;
         [SerializeField] private TMP_Text _playerHpText;
         [SerializeField] private TMP_Text _playerNameText;
-        [SerializeField] private Slider _playerApSlider;
+        [SerializeField] private Transform _playerApPipsContainer;
         [SerializeField] private TMP_Text _playerApText;
 
         [Header("Enemy Status")]
-        [SerializeField] private Slider _enemyHpSlider;
+        [SerializeField] private Image _enemyHpFill;
         [SerializeField] private TMP_Text _enemyHpText;
         [SerializeField] private TMP_Text _enemyNameText;
 
         [Header("Turn Timeline")]
-        [SerializeField] private Transform _timelineContainer;
-        [SerializeField] private GameObject _timelineBadgePrefab;
-        [SerializeField] private TMP_Text _timelineFallbackText;
+        [SerializeField] private TMP_Text _timelineText;
 
         [Header("Action Command Menu")]
         [SerializeField] private GameObject _commandMenuRoot;
@@ -47,6 +46,7 @@ namespace Expedition33.Combat
 
         private ActionPointPool _trackedApPool;
         private List<SkillDefinitionSO> _availableSkills;
+        private readonly List<Image> _apPipImages = new();
 
         private void Awake()
         {
@@ -74,9 +74,26 @@ namespace Expedition33.Combat
                 _skillBackBtn.onClick.AddListener(() => ShowSkillMenu(false));
             }
 
+            CacheApPips();
             SetCommandMenuVisible(false);
             ShowSkillMenu(false);
             SetTurnBanner(string.Empty);
+        }
+
+        private void CacheApPips()
+        {
+            _apPipImages.Clear();
+            if (_playerApPipsContainer != null)
+            {
+                foreach (Transform child in _playerApPipsContainer)
+                {
+                    var img = child.GetComponent<Image>();
+                    if (img != null)
+                    {
+                        _apPipImages.Add(img);
+                    }
+                }
+            }
         }
 
         public void SetupPlayerStatus(CombatActorStats stats, ActionPointPool apPool, List<SkillDefinitionSO> skills)
@@ -84,7 +101,7 @@ namespace Expedition33.Combat
             if (stats != null)
             {
                 if (_playerNameText != null)
-                    _playerNameText.text = stats.Name;
+                    _playerNameText.text = stats.Name.ToUpper();
 
                 UpdatePlayerHealth(stats.CurrentHealth, stats.MaxHealth);
                 stats.OnHealthChanged += UpdatePlayerHealth;
@@ -107,7 +124,7 @@ namespace Expedition33.Combat
                 return;
 
             if (_enemyNameText != null)
-                _enemyNameText.text = stats.Name;
+                _enemyNameText.text = stats.Name.ToUpper();
 
             UpdateEnemyHealth(stats.CurrentHealth, stats.MaxHealth);
             stats.OnHealthChanged += UpdateEnemyHealth;
@@ -115,64 +132,65 @@ namespace Expedition33.Combat
 
         public void UpdatePlayerHealth(int current, int max)
         {
-            if (_playerHpSlider != null)
+            float ratio = max > 0 ? Mathf.Clamp01((float)current / max) : 0f;
+
+            if (_playerHpFill != null)
             {
-                _playerHpSlider.maxValue = max;
-                _playerHpSlider.value = current;
+                _playerHpFill.DOKill();
+                DOTween.To(() => _playerHpFill.fillAmount, x => _playerHpFill.fillAmount = x, ratio, 0.2f).SetEase(Ease.OutQuad);
             }
 
             if (_playerHpText != null)
             {
-                _playerHpText.text = $"HP: {current} / {max}";
+                _playerHpText.text = $"HP  <b>{current}</b> / {max}";
+            }
+        }
+
+        public void UpdateEnemyHealth(int current, int max)
+        {
+            float ratio = max > 0 ? Mathf.Clamp01((float)current / max) : 0f;
+
+            if (_enemyHpFill != null)
+            {
+                _enemyHpFill.DOKill();
+                DOTween.To(() => _enemyHpFill.fillAmount, x => _enemyHpFill.fillAmount = x, ratio, 0.2f).SetEase(Ease.OutQuad);
+            }
+
+            if (_enemyHpText != null)
+            {
+                _enemyHpText.text = $"HP  <b>{current}</b> / {max}";
             }
         }
 
         public void UpdatePlayerAP(int current, int max)
         {
-            if (_playerApSlider != null)
-            {
-                _playerApSlider.maxValue = max;
-                _playerApSlider.value = current;
-            }
-
             if (_playerApText != null)
             {
-                _playerApText.text = $"AP: {current} / {max}";
+                _playerApText.text = $"AP  <b>{current}</b> / {max}";
             }
 
-            // Refresh skill button interactivity
+            for (int i = 0; i < _apPipImages.Count; i++)
+            {
+                bool isFilled = i < current;
+                _apPipImages[i].color = isFilled ? new Color(0.1f, 0.8f, 1f, 1f) : new Color(0.15f, 0.22f, 0.3f, 0.5f);
+            }
+
             PopulateSkillMenu();
-        }
-
-        public void UpdateEnemyHealth(int current, int max)
-        {
-            if (_enemyHpSlider != null)
-            {
-                _enemyHpSlider.maxValue = max;
-                _enemyHpSlider.value = current;
-            }
-
-            if (_enemyHpText != null)
-            {
-                _enemyHpText.text = $"HP: {current} / {max}";
-            }
         }
 
         public void UpdateTimelinePreview(List<CombatActorStats> upcoming)
         {
-            if (upcoming == null)
+            if (upcoming == null || _timelineText == null)
                 return;
 
-            if (_timelineFallbackText != null)
+            var badges = new List<string>();
+            for (int i = 0; i < Mathf.Min(6, upcoming.Count); i++)
             {
-                var names = new List<string>();
-                for (int i = 0; i < Mathf.Min(6, upcoming.Count); i++)
-                {
-                    string colorTag = upcoming[i].IsPlayer ? "<color=#55AAFF>" : "<color=#FF5555>";
-                    names.Add($"{colorTag}{upcoming[i].Name}</color>");
-                }
-                _timelineFallbackText.text = string.Join("  >  ", names);
+                string tag = upcoming[i].IsPlayer ? "<color=#4DC4FF><b>" + upcoming[i].Name + "</b></color>" : "<color=#FF5566><b>" + upcoming[i].Name + "</b></color>";
+                badges.Add(tag);
             }
+
+            _timelineText.text = string.Join("  <color=#888888>→</color>  ", badges);
         }
 
         public void SetCommandMenuVisible(bool visible)
@@ -210,7 +228,6 @@ namespace Expedition33.Combat
             if (_skillButtonsContainer == null || _availableSkills == null)
                 return;
 
-            // Clear existing buttons
             for (int i = _skillButtonsContainer.childCount - 1; i >= 0; i--)
             {
                 Destroy(_skillButtonsContainer.GetChild(i).gameObject);
@@ -222,10 +239,10 @@ namespace Expedition33.Combat
                 btnObj.transform.SetParent(_skillButtonsContainer, false);
 
                 var rect = btnObj.AddComponent<RectTransform>();
-                rect.sizeDelta = new Vector2(260f, 48f);
+                rect.sizeDelta = new Vector2(280f, 44f);
 
                 var img = btnObj.AddComponent<Image>();
-                img.color = new Color(0.2f, 0.45f, 0.8f, 0.9f);
+                img.color = new Color(0.18f, 0.16f, 0.28f, 0.95f);
 
                 var btn = btnObj.AddComponent<Button>();
                 bool canAfford = _trackedApPool != null && _trackedApPool.CanSpend(skill.APCost);
@@ -238,14 +255,15 @@ namespace Expedition33.Combat
                 textRect.anchorMax = Vector2.one;
 
                 var txt = textObj.AddComponent<TextMeshProUGUI>();
-                txt.fontSize = 18;
+                txt.fontSize = 17;
                 txt.fontStyle = FontStyles.Bold;
                 txt.alignment = TextAlignmentOptions.Center;
-                txt.text = $"{skill.SkillName} [{skill.APCost} AP]";
+                txt.text = $"{skill.SkillName}  <color=#00D0FF>[{skill.APCost} AP]</color>";
 
                 if (!canAfford)
                 {
-                    txt.color = new Color(0.7f, 0.7f, 0.7f, 0.5f);
+                    txt.color = new Color(0.6f, 0.6f, 0.6f, 0.4f);
+                    img.color = new Color(0.12f, 0.12f, 0.16f, 0.7f);
                 }
 
                 SkillDefinitionSO capturedSkill = skill;
