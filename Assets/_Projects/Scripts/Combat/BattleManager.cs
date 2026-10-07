@@ -34,6 +34,11 @@ namespace Expedition33.Combat
         private ActionPointPool _apPool;
         private CombatActorStats _playerStats;
         private CombatActorStats _enemyStats;
+        private BreakMeter _enemyBreakMeter;
+        private OverchargeMeter _playerOverchargeMeter;
+        private StanceController _playerStanceController;
+        private StatusEffectController _playerStatusController;
+        private StatusEffectController _enemyStatusController;
 
         private bool _playerActionChosen;
         private CombatActionType _selectedAction;
@@ -44,6 +49,11 @@ namespace Expedition33.Combat
         public CombatActorStats EnemyStats => _enemyStats;
         public ActionPointPool APPool => _apPool;
         public BattleStateMachine StateMachine => _stateMachine;
+        public BreakMeter EnemyBreakMeter => _enemyBreakMeter;
+        public OverchargeMeter PlayerOverchargeMeter => _playerOverchargeMeter;
+        public StanceController PlayerStanceController => _playerStanceController;
+        public StatusEffectController PlayerStatusController => _playerStatusController;
+        public StatusEffectController EnemyStatusController => _enemyStatusController;
 
         private void Awake()
         {
@@ -107,6 +117,35 @@ namespace Expedition33.Combat
             _timeline.RegisterActor(_playerStats);
             _timeline.RegisterActor(_enemyStats);
 
+            // Setup Milestone 5 Mechanics
+            _enemyBreakMeter = new BreakMeter(maxBreak: 100, brokenDamageMultiplier: 1.75f);
+            _playerOverchargeMeter = new OverchargeMeter(maxCharges: 3);
+            _playerStanceController = new StanceController(CombatStance.Balanced);
+            _playerStatusController = new StatusEffectController();
+            _enemyStatusController = new StatusEffectController();
+
+            _enemyBreakMeter.OnBreakChanged += (cur, max) =>
+            {
+                _hud?.UpdateEnemyBreak(cur, max, _enemyBreakMeter.IsBroken);
+            };
+
+            _enemyBreakMeter.OnBroken += () =>
+            {
+                _audioPlayer?.PlayBreakShatter();
+                _gameFeel?.TriggerHitStop(true);
+                _gameFeel?.TriggerCameraShake(2.0f);
+            };
+
+            _playerOverchargeMeter.OnOverchargeChanged += (cur, max) =>
+            {
+                _hud?.UpdatePlayerOvercharge(cur, max);
+            };
+
+            _playerStanceController.OnStanceChanged += stance =>
+            {
+                _hud?.UpdatePlayerStance(stance);
+            };
+
             // Connect HUD
             if (_hud != null)
             {
@@ -115,7 +154,12 @@ namespace Expedition33.Combat
                 _hud.OnAttackSelected += HandlePlayerAttackSelected;
                 _hud.OnSkillSelected += HandlePlayerSkillSelected;
                 _hud.OnFreeAimSelected += HandlePlayerFreeAimSelected;
+                _hud.OnStanceToggleRequested += HandleStanceToggleRequested;
                 _hud.OnPassSelected += HandlePlayerPassSelected;
+
+                _hud.UpdateEnemyBreak(_enemyBreakMeter.CurrentBreak, _enemyBreakMeter.MaxBreak, false);
+                _hud.UpdatePlayerOvercharge(_playerOverchargeMeter.CurrentCharges, _playerOverchargeMeter.MaxCharges);
+                _hud.UpdatePlayerStance(_playerStanceController.CurrentStance);
             }
 
             RefreshTimelineHUD();
@@ -127,8 +171,8 @@ namespace Expedition33.Combat
         {
             _playerSkills = new List<SkillDefinitionSO>
             {
-                SkillDefinitionSO.CreateSkill("Overcharge Cleave", 3, 2.2f, "Heavy devastating blow with bonus break force."),
-                SkillDefinitionSO.CreateSkill("Swift Flurry", 2, 1.5f, "Quick dual-hit flurry.")
+                SkillDefinitionSO.CreateSkill("Overcharge Cleave", 3, 2.2f, "Heavy blow discharging Overcharge for bonus break force.", breakDamage: 50, status: StatusEffectType.Burn, statusDuration: 2, consumesOvercharge: true),
+                SkillDefinitionSO.CreateSkill("Swift Flurry", 2, 1.5f, "Quick dual-hit flurry inflicting Weaken.", breakDamage: 25, status: StatusEffectType.Weaken, statusDuration: 2, consumesOvercharge: false)
             };
         }
 
@@ -169,12 +213,67 @@ namespace Expedition33.Combat
             }
         }
 
+        private void HandleStanceToggleRequested()
+        {
+            var next = _playerStanceController.CycleNextStance();
+            _audioPlayer?.PlayStanceSwitch();
+            _hud?.AddLog($"Stance changed to <color=#FFE040><b>{next.ToString().ToUpper()}</b></color>.");
+            FloatingCombatText.Spawn(_playerView.transform.position + Vector3.up * 1.8f, $"STANCE: {next}", Color.white, 1.2f);
+        }
+
         private void HandlePlayerPassSelected()
         {
             _audioPlayer?.PlayButtonClick();
             _selectedAction = CombatActionType.Pass;
             _selectedSkill = null;
             _playerActionChosen = true;
+        }
+
+        private void ApplyDamageAndBreakToEnemy(
+            float baseDamageMultiplier,
+            int baseBreakAmount,
+            bool isCrit,
+            string actionLabel,
+            Vector3 hitPosition)
+        {
+            float stanceAtk = _playerStanceController != null ? _playerStanceController.GetAttackMultiplier() : 1.0f;
+            float statusAtk = _playerStatusController != null ? _playerStatusController.GetAttackMultiplier() : 1.0f;
+            float incomingMod = _enemyStatusController != null ? _enemyStatusController.GetIncomingDamageMultiplier() : 1.0f;
+            float brokenMod = (_enemyBreakMeter != null && _enemyBreakMeter.IsBroken) ? _enemyBreakMeter.BrokenDamageMultiplier : 1.0f;
+
+            float combinedMultiplier = baseDamageMultiplier * stanceAtk * statusAtk * incomingMod * brokenMod;
+
+            DamageResult result = DamageCalculator.CalculateDamage(_playerStats, _enemyStats, combinedMultiplier, isCrit);
+            _enemyStats.ApplyDamage(result.MitigatedDamage);
+
+            bool brokenThisHit = _enemyBreakMeter != null && _enemyBreakMeter.AddBreak(baseBreakAmount);
+
+            _enemyView.PlayHitReact();
+            _enemyView.FlashColor(isCrit || brokenThisHit ? Color.yellow : Color.red, 0.25f);
+            _audioPlayer?.PlayHit();
+            _gameFeel?.TriggerHitStop(isCrit || brokenThisHit);
+            _gameFeel?.TriggerCameraShake(brokenThisHit ? 2.0f : (isCrit ? 1.5f : 1.0f));
+
+            string critTag = isCrit ? " [CRIT]" : "";
+            string brokenTag = (_enemyBreakMeter != null && _enemyBreakMeter.IsBroken) ? " [1.75x BROKEN]" : "";
+            string labelTag = !string.IsNullOrEmpty(actionLabel) ? $" [{actionLabel.ToUpper()}]" : "";
+
+            Color textColor = (_enemyBreakMeter != null && _enemyBreakMeter.IsBroken) ? new Color(1f, 0.5f, 0.2f) : (isCrit ? Color.yellow : Color.white);
+
+            FloatingCombatText.Spawn(
+                hitPosition,
+                $"-{result.MitigatedDamage}{labelTag}{critTag}{brokenTag}",
+                textColor,
+                isCrit || (_enemyBreakMeter != null && _enemyBreakMeter.IsBroken) ? 1.5f : 1.1f
+            );
+
+            if (brokenThisHit)
+            {
+                FloatingCombatText.Spawn(_enemyView.transform.position + Vector3.up * 1.5f, "★ BROKEN! ★", new Color(1f, 0.4f, 0.1f), 1.8f);
+                _hud?.AddLog("<color=#FF8822><b>★ ENEMY POSTURE BROKEN! (Takes 1.75x damage + Skips next turn) ★</b></color>");
+            }
+
+            _hud?.AddLog($"{_playerStats.Name} dealt {result.MitigatedDamage} damage ({baseBreakAmount} break) to {_enemyStats.Name}.");
         }
 
         private void RefreshTimelineHUD()
@@ -236,6 +335,22 @@ namespace Expedition33.Combat
             _hud?.SetTurnBanner("PLAYER TURN");
             _hud?.AddLog("Choose Attack, Skill, Free Aim, or Pass.");
             _audioPlayer?.PlayTurnStart();
+
+            // Status effects on turn start
+            _playerStatusController.ProcessTurnStart(_playerStats);
+            _hud?.UpdatePlayerStatuses(_playerStatusController.ActiveEffects);
+
+            if (_playerStats.IsDefeated)
+                yield break;
+
+            // Stance bonus AP (e.g. Virtuoso stance)
+            int bonusAP = _playerStanceController.GetBonusAPGeneration();
+            if (bonusAP > 0)
+            {
+                _apPool.Generate(bonusAP);
+                _hud?.AddLog($"Virtuoso Stance generated +{bonusAP} bonus AP!");
+            }
+
             _hud?.SetCommandMenuVisible(true);
 
             _playerActionChosen = false;
@@ -301,42 +416,33 @@ namespace Expedition33.Combat
 
             float multiplier = 1f;
             bool isCrit = false;
+            int breakAmount = 15;
 
             if (qteResult == QTEOutcome.Perfect)
             {
                 multiplier = 1.5f;
                 isCrit = true;
+                breakAmount = 30;
+                _playerOverchargeMeter.AddCharge(1);
                 _audioPlayer?.PlayQTESuccess();
-                _hud?.AddLog("<color=#FFE838>★ PERFECT QTE! Critical Strike! ★</color>");
+                FloatingCombatText.Spawn(_playerView.transform.position + Vector3.up * 1.5f, "+1 OVERCHARGE", new Color(1f, 0.85f, 0.2f), 1.3f);
+                _hud?.AddLog("<color=#FFE838>★ PERFECT QTE! Critical Strike! (+1 Overcharge) ★</color>");
             }
             else if (qteResult == QTEOutcome.Good)
             {
                 multiplier = 1.15f;
+                breakAmount = 20;
                 _hud?.AddLog("<color=#66FF88>Good timing on strike.</color>");
             }
             else
             {
                 multiplier = 0.85f;
+                breakAmount = 10;
                 _hud?.AddLog("<color=#AAAAAA>Strike timing missed.</color>");
             }
 
-            DamageResult result = DamageCalculator.CalculateDamage(_playerStats, _enemyStats, multiplier, isCrit);
-            _enemyStats.ApplyDamage(result.MitigatedDamage);
+            ApplyDamageAndBreakToEnemy(multiplier, breakAmount, isCrit, "Strike", _enemyView.transform.position);
 
-            _enemyView.PlayHitReact();
-            _enemyView.FlashColor(isCrit ? Color.yellow : Color.red, 0.2f);
-            _audioPlayer?.PlayHit();
-            _gameFeel?.TriggerHitStop(isCrit);
-            _gameFeel?.TriggerCameraShake(isCrit ? 1.4f : 1f);
-
-            FloatingCombatText.Spawn(
-                _enemyView.transform.position,
-                isCrit ? $"-{result.MitigatedDamage} [CRIT]" : $"-{result.MitigatedDamage}",
-                isCrit ? Color.yellow : Color.white,
-                isCrit ? 1.4f : 1f
-            );
-
-            _hud?.AddLog($"{_playerStats.Name} dealt {result.MitigatedDamage} damage! (+1 AP)");
             yield return new WaitForSeconds(0.4f);
 
             if (!_enemyStats.IsDefeated)
@@ -397,24 +503,34 @@ namespace Expedition33.Combat
                 bonusMultiplier = 1.1f;
             }
 
-            float finalMultiplier = skill.DamageMultiplier * bonusMultiplier;
-            DamageResult result = DamageCalculator.CalculateDamage(_playerStats, _enemyStats, finalMultiplier, isCrit);
-            _enemyStats.ApplyDamage(result.MitigatedDamage);
+            float extraMultiplier = 0f;
+            int extraBreak = 0;
 
-            _enemyView.PlayHitReact();
-            _enemyView.FlashColor(Color.yellow, 0.25f);
-            _audioPlayer?.PlayHit();
-            _gameFeel?.TriggerHitStop(true);
-            _gameFeel?.TriggerCameraShake(1.6f);
+            if (skill.ConsumesOvercharge)
+            {
+                int charges = _playerOverchargeMeter.ConsumeAllCharges();
+                if (charges > 0)
+                {
+                    extraMultiplier = charges * 0.35f;
+                    extraBreak = charges * 25;
+                    _audioPlayer?.PlayOverchargeSurge();
+                    FloatingCombatText.Spawn(_playerView.transform.position + Vector3.up * 1.5f, $"OVERCHARGE x{charges}!", Color.cyan, 1.4f);
+                    _hud?.AddLog($"<color=#38E0FF>★ OVERCHARGE SURGE: {charges} charges discharged for massive bonus power! ★</color>");
+                }
+            }
 
-            FloatingCombatText.Spawn(
-                _enemyView.transform.position,
-                $"-{result.MitigatedDamage} [{skill.SkillName.ToUpper()}]",
-                Color.yellow,
-                1.5f
-            );
+            float finalMultiplier = (skill.DamageMultiplier + extraMultiplier) * bonusMultiplier;
+            int finalBreak = skill.BreakDamage + extraBreak;
 
-            _hud?.AddLog($"{skill.SkillName} dealt {result.MitigatedDamage} damage to {_enemyStats.Name}!");
+            ApplyDamageAndBreakToEnemy(finalMultiplier, finalBreak, isCrit, skill.SkillName, _enemyView.transform.position);
+
+            if (skill.InflictedStatus != StatusEffectType.None && !_enemyStats.IsDefeated)
+            {
+                _enemyStatusController.ApplyStatus(skill.InflictedStatus, skill.StatusDuration, potency: 10);
+                _hud?.UpdateEnemyStatuses(_enemyStatusController.ActiveEffects);
+                _hud?.AddLog($"Inflicted {skill.InflictedStatus} for {skill.StatusDuration} turns on {_enemyStats.Name}!");
+            }
+
             yield return new WaitForSeconds(0.45f);
 
             if (!_enemyStats.IsDefeated)
@@ -478,25 +594,15 @@ namespace Expedition33.Combat
                     var hitbox = hit.collider.GetComponent<CombatHitbox>();
                     if (hitbox != null)
                     {
-                        var (damage, isCrit) = FreeAimDamageCalculator.Calculate(_playerStats.AttackPower, hitbox.HitboxType, _enemyStats.Defense);
-                        _enemyStats.ApplyDamage(damage);
+                        bool isWeak = hitbox.HitboxType == HitboxType.WeakPoint;
+                        float baseMult = isWeak ? 2.0f : 1.0f;
+                        int breakAmount = isWeak ? 40 : 15;
 
-                        _enemyView.PlayHitReact();
-                        _enemyView.FlashColor(isCrit ? Color.yellow : Color.red, 0.2f);
-                        _gameFeel?.TriggerHitStop(isCrit);
-                        _gameFeel?.TriggerCameraShake(isCrit ? 1.5f : 1f);
+                        ApplyDamageAndBreakToEnemy(baseMult, breakAmount, isWeak, isWeak ? "Weak Point" : "Shot", hit.point);
 
-                        if (isCrit)
+                        if (isWeak)
                         {
                             _audioPlayer?.PlayWeakPointHit();
-                            FloatingCombatText.Spawn(hit.point, $"-{damage} [WEAK POINT CRIT!]", Color.yellow, 1.6f);
-                            _hud?.AddLog($"<color=#FFE838>★ WEAK POINT HIT! {damage} critical damage! ★</color>");
-                        }
-                        else
-                        {
-                            _audioPlayer?.PlayHit();
-                            FloatingCombatText.Spawn(hit.point, $"-{damage}", Color.white, 1.2f);
-                            _hud?.AddLog($"Gunshot dealt {damage} damage.");
                         }
 
                         if (_enemyStats.IsDefeated)
@@ -583,6 +689,30 @@ namespace Expedition33.Combat
             _stateMachine.ChangeState(BattleState.EnemyTurn);
             _hud?.SetTurnBanner("ENEMY TURN");
 
+            // Process enemy turn start status effects (e.g. burn dot)
+            _enemyStatusController.ProcessTurnStart(_enemyStats);
+            _hud?.UpdateEnemyStatuses(_enemyStatusController.ActiveEffects);
+
+            if (_enemyStats.IsDefeated)
+            {
+                yield break;
+            }
+
+            // Check if enemy is posture broken
+            if (_enemyBreakMeter.IsBroken)
+            {
+                _hud?.SetTurnBanner("<color=#FF8822>ENEMY STUNNED</color>");
+                _hud?.AddLog($"<color=#FF8822><b>{_enemyStats.Name} is BROKEN and skips turn! Posture recovering.</b></color>");
+                FloatingCombatText.Spawn(_enemyView.transform.position + Vector3.up * 1.5f, "TURN SKIPPED (BROKEN)", new Color(1f, 0.5f, 0.2f), 1.6f);
+                _audioPlayer?.PlayTelegraphWindup();
+
+                _enemyBreakMeter.ConsumeBrokenTurn();
+                _hud?.UpdateEnemyBreak(_enemyBreakMeter.CurrentBreak, _enemyBreakMeter.MaxBreak, _enemyBreakMeter.IsBroken);
+
+                yield return new WaitForSeconds(1.2f);
+                yield break;
+            }
+
             EnemyAttackPatternSO pattern = _enemyAttackPatterns[_enemyTurnCounter % _enemyAttackPatterns.Length];
             _enemyTurnCounter++;
 
@@ -661,11 +791,13 @@ namespace Expedition33.Combat
                     _inputBuffer.SetListening(false);
                 }
 
+                float parryWindowMult = _playerStanceController != null ? _playerStanceController.GetParryWindowMultiplier() : 1.0f;
                 DefenseOutcome outcome = ActiveDefenseEvaluator.Evaluate(
                     capturedAction,
                     capturedTimestamp,
                     strike.HitTimeOffset,
-                    strike
+                    strike,
+                    parryWindowMult
                 );
 
                 if (_timingVisualizer != null)
@@ -699,6 +831,7 @@ namespace Expedition33.Combat
             {
                 case DefenseOutcome.ParrySuccess:
                     _apPool.Generate(2);
+                    _playerOverchargeMeter.AddCharge(1);
                     _audioPlayer?.PlayAPGain();
                     _audioPlayer?.PlayParrySuccess();
                     _gameFeel?.TriggerHitStop(true);
@@ -706,32 +839,18 @@ namespace Expedition33.Combat
 
                     FloatingCombatText.Spawn(
                         _playerView.transform.position,
-                        "PERFECT PARRY! (+2 AP)",
+                        "PERFECT PARRY! (+2 AP, +1 OVERCHARGE)",
                         Color.green,
                         1.4f
                     );
-                    _hud?.AddLog("<color=#00FF88>★ PERFECT PARRY! (+2 AP) Counter-strike triggered! ★</color>");
+                    _hud?.AddLog("<color=#00FF88>★ PERFECT PARRY! (+2 AP, +1 Overcharge) Counter-strike triggered! ★</color>");
 
                     yield return new WaitForSeconds(0.2f);
 
                     bool counterComplete = false;
                     _playerView.PlayCounterAttack(_enemyView.transform.position, () =>
                     {
-                        int counterDmg = Mathf.RoundToInt(_playerStats.AttackPower * 1.4f);
-                        _enemyStats.ApplyDamage(counterDmg);
-                        _enemyView.PlayHitReact();
-                        _enemyView.FlashColor(Color.yellow, 0.2f);
-                        _audioPlayer?.PlayHit();
-                        _gameFeel?.TriggerHitStop(false);
-                        _gameFeel?.TriggerCameraShake(1.1f);
-
-                        FloatingCombatText.Spawn(
-                            _enemyView.transform.position,
-                            $"-{counterDmg} [COUNTER]",
-                            Color.yellow,
-                            1.3f
-                        );
-                        _hud?.AddLog($"Gustave counter-attacked for {counterDmg} damage!");
+                        ApplyDamageAndBreakToEnemy(1.4f, 40, true, "Counter", _enemyView.transform.position);
                     }, () => counterComplete = true);
 
                     while (!counterComplete)
@@ -769,7 +888,12 @@ namespace Expedition33.Combat
                     break;
 
                 default:
-                    DamageResult result = DamageCalculator.CalculateDamage(_enemyStats, _playerStats, 1f, false);
+                    float stanceDefMod = _playerStanceController != null ? _playerStanceController.GetDefenseMultiplier() : 1.0f;
+                    float enemyAtkMod = _enemyStatusController != null ? _enemyStatusController.GetAttackMultiplier() : 1.0f;
+                    float incomingMod = _playerStatusController != null ? _playerStatusController.GetIncomingDamageMultiplier() : 1.0f;
+
+                    float combinedMultiplier = enemyAtkMod * incomingMod / Mathf.Max(0.1f, stanceDefMod);
+                    DamageResult result = DamageCalculator.CalculateDamage(_enemyStats, _playerStats, combinedMultiplier, false);
                     _playerStats.ApplyDamage(result.MitigatedDamage);
 
                     _playerView.PlayHitReact();
@@ -797,6 +921,7 @@ namespace Expedition33.Combat
                 _hud.OnAttackSelected -= HandlePlayerAttackSelected;
                 _hud.OnSkillSelected -= HandlePlayerSkillSelected;
                 _hud.OnFreeAimSelected -= HandlePlayerFreeAimSelected;
+                _hud.OnStanceToggleRequested -= HandleStanceToggleRequested;
                 _hud.OnPassSelected -= HandlePlayerPassSelected;
             }
         }

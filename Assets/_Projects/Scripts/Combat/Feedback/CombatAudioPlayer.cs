@@ -20,6 +20,9 @@ namespace Expedition33.Combat
         private AudioClip _apGainClip;
         private AudioClip _gunshotClip;
         private AudioClip _weakPointClip;
+        private AudioClip _breakShatterClip;
+        private AudioClip _overchargeSurgeClip;
+        private AudioClip _stanceSwitchClip;
 
         private void Awake()
         {
@@ -97,6 +100,21 @@ namespace Expedition33.Combat
             PlayClip(_weakPointClip, 1.0f);
         }
 
+        public void PlayBreakShatter()
+        {
+            PlayClip(_breakShatterClip, 1.0f);
+        }
+
+        public void PlayOverchargeSurge()
+        {
+            PlayClip(_overchargeSurgeClip, 0.9f);
+        }
+
+        public void PlayStanceSwitch()
+        {
+            PlayClip(_stanceSwitchClip, 0.75f);
+        }
+
         private void PlayClip(AudioClip clip, float volume)
         {
             if (clip != null && _audioSource != null)
@@ -136,6 +154,15 @@ namespace Expedition33.Combat
 
             // Weak point critical shatter (crystal ding)
             _weakPointClip = CreateMetallicRing(1600f, 0.25f);
+
+            // Heavy Break shatter (crisp glass snap + deep sub drop)
+            _breakShatterClip = CreateMetallicRing(480f, 0.35f);
+
+            // Overcharge electric energy surge (ascending pitch)
+            _overchargeSurgeClip = CreateSweepTone(220f, 880f, 0.22f);
+
+            // Stance toggle switch (sharp dual chime)
+            _stanceSwitchClip = CreateDualTone(880f, 1320f, 0.06f);
         }
 
         private AudioClip CreateNoiseBurst(float duration, float volume)

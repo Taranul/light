@@ -135,12 +135,18 @@ namespace Expedition33.EditorTools
             bText.alignment = TextAlignmentOptions.Center;
             bText.text = "BATTLE START";
 
+            // Procedural solid white sprite for filled UI images
+            var solidWhiteTex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            solidWhiteTex.SetPixels(new[] { Color.white, Color.white, Color.white, Color.white });
+            solidWhiteTex.Apply();
+            var solidWhiteSprite = Sprite.Create(solidWhiteTex, new Rect(0, 0, 2, 2), new Vector2(0.5f, 0.5f));
+
             // 4.3 Player Status Panel (Bottom Left)
             var playerPanel = new GameObject("PlayerPanel");
             playerPanel.transform.SetParent(canvasGo.transform, false);
             var ppRect = playerPanel.AddComponent<RectTransform>();
             ppRect.anchorMin = new Vector2(0.03f, 0.04f);
-            ppRect.anchorMax = new Vector2(0.28f, 0.22f);
+            ppRect.anchorMax = new Vector2(0.32f, 0.28f);
             ppRect.offsetMin = Vector2.zero;
             ppRect.offsetMax = Vector2.zero;
             var ppBg = playerPanel.AddComponent<Image>();
@@ -150,22 +156,36 @@ namespace Expedition33.EditorTools
             var pNameObj = new GameObject("PlayerName");
             pNameObj.transform.SetParent(playerPanel.transform, false);
             var pnRect = pNameObj.AddComponent<RectTransform>();
-            pnRect.anchorMin = new Vector2(0.06f, 0.68f);
-            pnRect.anchorMax = new Vector2(0.94f, 0.95f);
+            pnRect.anchorMin = new Vector2(0.06f, 0.78f);
+            pnRect.anchorMax = new Vector2(0.50f, 0.96f);
             pnRect.offsetMin = Vector2.zero;
             pnRect.offsetMax = Vector2.zero;
             var pnText = pNameObj.AddComponent<TextMeshProUGUI>();
-            pnText.fontSize = 24;
+            pnText.fontSize = 22;
             pnText.fontStyle = FontStyles.Bold;
             pnText.color = new Color(0.35f, 0.82f, 1f);
             pnText.text = "GUSTAVE";
+
+            // Player HP Text
+            var phtObj = new GameObject("HpText");
+            phtObj.transform.SetParent(playerPanel.transform, false);
+            var phtRect = phtObj.AddComponent<RectTransform>();
+            phtRect.anchorMin = new Vector2(0.50f, 0.78f);
+            phtRect.anchorMax = new Vector2(0.94f, 0.96f);
+            phtRect.offsetMin = Vector2.zero;
+            phtRect.offsetMax = Vector2.zero;
+            var phtText = phtObj.AddComponent<TextMeshProUGUI>();
+            phtText.fontSize = 17;
+            phtText.alignment = TextAlignmentOptions.Right;
+            phtText.color = new Color(0.85f, 0.95f, 0.9f);
+            phtText.text = "HP  <b>120</b> / 120";
 
             // Player HP Bar Background
             var phpBgObj = new GameObject("HpBarBackground");
             phpBgObj.transform.SetParent(playerPanel.transform, false);
             var phpBgRect = phpBgObj.AddComponent<RectTransform>();
-            phpBgRect.anchorMin = new Vector2(0.06f, 0.44f);
-            phpBgRect.anchorMax = new Vector2(0.94f, 0.58f);
+            phpBgRect.anchorMin = new Vector2(0.06f, 0.63f);
+            phpBgRect.anchorMax = new Vector2(0.94f, 0.74f);
             phpBgRect.offsetMin = Vector2.zero;
             phpBgRect.offsetMax = Vector2.zero;
             var phpBgImg = phpBgObj.AddComponent<Image>();
@@ -180,35 +200,22 @@ namespace Expedition33.EditorTools
             phpFillRect.offsetMin = Vector2.zero;
             phpFillRect.offsetMax = Vector2.zero;
             var phpFillImg = phpFillObj.AddComponent<Image>();
+            phpFillImg.sprite = solidWhiteSprite;
             phpFillImg.type = Image.Type.Filled;
             phpFillImg.fillMethod = Image.FillMethod.Horizontal;
             phpFillImg.fillAmount = 1f;
             phpFillImg.color = new Color(0f, 0.9f, 0.6f);
 
-            // Player HP Text
-            var phtObj = new GameObject("HpText");
-            phtObj.transform.SetParent(playerPanel.transform, false);
-            var phtRect = phtObj.AddComponent<RectTransform>();
-            phtRect.anchorMin = new Vector2(0.50f, 0.64f);
-            phtRect.anchorMax = new Vector2(0.94f, 0.95f);
-            phtRect.offsetMin = Vector2.zero;
-            phtRect.offsetMax = Vector2.zero;
-            var phtText = phtObj.AddComponent<TextMeshProUGUI>();
-            phtText.fontSize = 18;
-            phtText.alignment = TextAlignmentOptions.Right;
-            phtText.color = new Color(0.85f, 0.95f, 0.9f);
-            phtText.text = "HP  <b>120</b> / 120";
-
             // Player AP Row
             var patObj = new GameObject("ApText");
             patObj.transform.SetParent(playerPanel.transform, false);
             var patRect = patObj.AddComponent<RectTransform>();
-            patRect.anchorMin = new Vector2(0.06f, 0.10f);
-            patRect.anchorMax = new Vector2(0.40f, 0.34f);
+            patRect.anchorMin = new Vector2(0.06f, 0.44f);
+            patRect.anchorMax = new Vector2(0.38f, 0.58f);
             patRect.offsetMin = Vector2.zero;
             patRect.offsetMax = Vector2.zero;
             var patText = patObj.AddComponent<TextMeshProUGUI>();
-            patText.fontSize = 18;
+            patText.fontSize = 17;
             patText.alignment = TextAlignmentOptions.Left;
             patText.color = new Color(0.25f, 0.75f, 1f);
             patText.text = "AP  <b>2</b> / 6";
@@ -217,8 +224,8 @@ namespace Expedition33.EditorTools
             var pipsObj = new GameObject("ApPipsContainer");
             pipsObj.transform.SetParent(playerPanel.transform, false);
             var pipsRect = pipsObj.AddComponent<RectTransform>();
-            pipsRect.anchorMin = new Vector2(0.38f, 0.10f);
-            pipsRect.anchorMax = new Vector2(0.94f, 0.34f);
+            pipsRect.anchorMin = new Vector2(0.38f, 0.44f);
+            pipsRect.anchorMax = new Vector2(0.94f, 0.58f);
             pipsRect.offsetMin = Vector2.zero;
             pipsRect.offsetMax = Vector2.zero;
             var pipsHlg = pipsObj.AddComponent<HorizontalLayoutGroup>();
@@ -234,17 +241,59 @@ namespace Expedition33.EditorTools
                 var pip = new GameObject($"Pip_{i}");
                 pip.transform.SetParent(pipsObj.transform, false);
                 var pipRect = pip.AddComponent<RectTransform>();
-                pipRect.sizeDelta = new Vector2(22f, 18f);
+                pipRect.sizeDelta = new Vector2(20f, 16f);
                 var pipImg = pip.AddComponent<Image>();
                 pipImg.color = (i < 2) ? new Color(0.1f, 0.8f, 1f, 1f) : new Color(0.15f, 0.22f, 0.3f, 0.5f);
             }
+
+            // Player Stance Text
+            var pstObj = new GameObject("StanceText");
+            pstObj.transform.SetParent(playerPanel.transform, false);
+            var pstRect = pstObj.AddComponent<RectTransform>();
+            pstRect.anchorMin = new Vector2(0.06f, 0.25f);
+            pstRect.anchorMax = new Vector2(0.50f, 0.40f);
+            pstRect.offsetMin = Vector2.zero;
+            pstRect.offsetMax = Vector2.zero;
+            var pstText = pstObj.AddComponent<TextMeshProUGUI>();
+            pstText.fontSize = 16;
+            pstText.alignment = TextAlignmentOptions.Left;
+            pstText.color = new Color(0.85f, 0.85f, 0.85f);
+            pstText.text = "STANCE: <color=#CCCCCC><b>BALANCED</b></color>";
+
+            // Player Overcharge Text
+            var pocObj = new GameObject("OverchargeText");
+            pocObj.transform.SetParent(playerPanel.transform, false);
+            var pocRect = pocObj.AddComponent<RectTransform>();
+            pocRect.anchorMin = new Vector2(0.50f, 0.25f);
+            pocRect.anchorMax = new Vector2(0.94f, 0.40f);
+            pocRect.offsetMin = Vector2.zero;
+            pocRect.offsetMax = Vector2.zero;
+            var pocText = pocObj.AddComponent<TextMeshProUGUI>();
+            pocText.fontSize = 16;
+            pocText.alignment = TextAlignmentOptions.Right;
+            pocText.color = new Color(1f, 0.88f, 0.2f);
+            pocText.text = "OVERCHARGE: □ □ □";
+
+            // Player Status Effects Text
+            var pstEffObj = new GameObject("PlayerStatusText");
+            pstEffObj.transform.SetParent(playerPanel.transform, false);
+            var psteRect = pstEffObj.AddComponent<RectTransform>();
+            psteRect.anchorMin = new Vector2(0.06f, 0.06f);
+            psteRect.anchorMax = new Vector2(0.94f, 0.22f);
+            psteRect.offsetMin = Vector2.zero;
+            psteRect.offsetMax = Vector2.zero;
+            var pStatusText = pstEffObj.AddComponent<TextMeshProUGUI>();
+            pStatusText.fontSize = 15;
+            pStatusText.alignment = TextAlignmentOptions.Left;
+            pStatusText.color = new Color(0.9f, 0.9f, 0.9f);
+            pStatusText.text = "";
 
             // 4.4 Enemy Status Panel (Top Right)
             var enemyPanel = new GameObject("EnemyPanel");
             enemyPanel.transform.SetParent(canvasGo.transform, false);
             var epRect = enemyPanel.AddComponent<RectTransform>();
-            epRect.anchorMin = new Vector2(0.72f, 0.78f);
-            epRect.anchorMax = new Vector2(0.97f, 0.93f);
+            epRect.anchorMin = new Vector2(0.68f, 0.72f);
+            epRect.anchorMax = new Vector2(0.97f, 0.94f);
             epRect.offsetMin = Vector2.zero;
             epRect.offsetMax = Vector2.zero;
             var epBg = enemyPanel.AddComponent<Image>();
@@ -253,21 +302,35 @@ namespace Expedition33.EditorTools
             var eNameObj = new GameObject("EnemyName");
             eNameObj.transform.SetParent(enemyPanel.transform, false);
             var enRect = eNameObj.AddComponent<RectTransform>();
-            enRect.anchorMin = new Vector2(0.06f, 0.55f);
+            enRect.anchorMin = new Vector2(0.06f, 0.76f);
             enRect.anchorMax = new Vector2(0.60f, 0.95f);
             enRect.offsetMin = Vector2.zero;
             enRect.offsetMax = Vector2.zero;
             var enText = eNameObj.AddComponent<TextMeshProUGUI>();
-            enText.fontSize = 22;
+            enText.fontSize = 20;
             enText.fontStyle = FontStyles.Bold;
             enText.color = new Color(1f, 0.35f, 0.4f);
             enText.text = "EXPEDITION STALKER";
 
+            var ehtObj = new GameObject("HpText");
+            ehtObj.transform.SetParent(enemyPanel.transform, false);
+            var ehtRect = ehtObj.AddComponent<RectTransform>();
+            ehtRect.anchorMin = new Vector2(0.55f, 0.76f);
+            ehtRect.anchorMax = new Vector2(0.94f, 0.95f);
+            ehtRect.offsetMin = Vector2.zero;
+            ehtRect.offsetMax = Vector2.zero;
+            var ehtText = ehtObj.AddComponent<TextMeshProUGUI>();
+            ehtText.fontSize = 17;
+            ehtText.alignment = TextAlignmentOptions.Right;
+            ehtText.color = new Color(1f, 0.85f, 0.85f);
+            ehtText.text = "HP  <b>90</b> / 90";
+
+            // Enemy HP Bar
             var ehpBgObj = new GameObject("HpBarBackground");
             ehpBgObj.transform.SetParent(enemyPanel.transform, false);
             var ehpBgRect = ehpBgObj.AddComponent<RectTransform>();
-            ehpBgRect.anchorMin = new Vector2(0.06f, 0.18f);
-            ehpBgRect.anchorMax = new Vector2(0.94f, 0.42f);
+            ehpBgRect.anchorMin = new Vector2(0.06f, 0.58f);
+            ehpBgRect.anchorMax = new Vector2(0.94f, 0.70f);
             ehpBgRect.offsetMin = Vector2.zero;
             ehpBgRect.offsetMax = Vector2.zero;
             var ehpBgImg = ehpBgObj.AddComponent<Image>();
@@ -281,30 +344,72 @@ namespace Expedition33.EditorTools
             ehpFillRect.offsetMin = Vector2.zero;
             ehpFillRect.offsetMax = Vector2.zero;
             var ehpFillImg = ehpFillObj.AddComponent<Image>();
+            ehpFillImg.sprite = solidWhiteSprite;
             ehpFillImg.type = Image.Type.Filled;
             ehpFillImg.fillMethod = Image.FillMethod.Horizontal;
             ehpFillImg.fillAmount = 1f;
             ehpFillImg.color = new Color(1f, 0.22f, 0.28f);
 
-            var ehtObj = new GameObject("HpText");
-            ehtObj.transform.SetParent(enemyPanel.transform, false);
-            var ehtRect = ehtObj.AddComponent<RectTransform>();
-            ehtRect.anchorMin = new Vector2(0.55f, 0.55f);
-            ehtRect.anchorMax = new Vector2(0.94f, 0.95f);
-            ehtRect.offsetMin = Vector2.zero;
-            ehtRect.offsetMax = Vector2.zero;
-            var ehtText = ehtObj.AddComponent<TextMeshProUGUI>();
-            ehtText.fontSize = 18;
-            ehtText.alignment = TextAlignmentOptions.Right;
-            ehtText.color = new Color(1f, 0.85f, 0.85f);
-            ehtText.text = "HP  <b>90</b> / 90";
+            // Enemy Break Bar (Posture)
+            var ebrBgObj = new GameObject("BreakBarBackground");
+            ebrBgObj.transform.SetParent(enemyPanel.transform, false);
+            var ebrBgRect = ebrBgObj.AddComponent<RectTransform>();
+            ebrBgRect.anchorMin = new Vector2(0.06f, 0.38f);
+            ebrBgRect.anchorMax = new Vector2(0.94f, 0.50f);
+            ebrBgRect.offsetMin = Vector2.zero;
+            ebrBgRect.offsetMax = Vector2.zero;
+            var ebrBgImg = ebrBgObj.AddComponent<Image>();
+            ebrBgImg.color = new Color(0.20f, 0.12f, 0.25f, 1f);
+
+            var ebrFillObj = new GameObject("BreakBarFill");
+            ebrFillObj.transform.SetParent(ebrBgObj.transform, false);
+            var ebrFillRect = ebrFillObj.AddComponent<RectTransform>();
+            ebrFillRect.anchorMin = Vector2.zero;
+            ebrFillRect.anchorMax = Vector2.one;
+            ebrFillRect.offsetMin = Vector2.zero;
+            ebrFillRect.offsetMax = Vector2.zero;
+            var eBreakFillImg = ebrFillObj.AddComponent<Image>();
+            eBreakFillImg.sprite = solidWhiteSprite;
+            eBreakFillImg.type = Image.Type.Filled;
+            eBreakFillImg.fillMethod = Image.FillMethod.Horizontal;
+            eBreakFillImg.fillAmount = 0f;
+            eBreakFillImg.color = new Color(0.85f, 0.5f, 1f, 1f);
+
+            // Enemy Break Text
+            var ebrtObj = new GameObject("BreakText");
+            ebrtObj.transform.SetParent(enemyPanel.transform, false);
+            var ebrtRect = ebrtObj.AddComponent<RectTransform>();
+            ebrtRect.anchorMin = new Vector2(0.06f, 0.38f);
+            ebrtRect.anchorMax = new Vector2(0.94f, 0.50f);
+            ebrtRect.offsetMin = Vector2.zero;
+            ebrtRect.offsetMax = Vector2.zero;
+            var eBreakText = ebrtObj.AddComponent<TextMeshProUGUI>();
+            eBreakText.fontSize = 15;
+            eBreakText.fontStyle = FontStyles.Bold;
+            eBreakText.alignment = TextAlignmentOptions.Center;
+            eBreakText.color = new Color(1f, 0.95f, 0.9f);
+            eBreakText.text = "BREAK  <b>0</b> / 100";
+
+            // Enemy Status Text
+            var estObj = new GameObject("EnemyStatusText");
+            estObj.transform.SetParent(enemyPanel.transform, false);
+            var estRect = estObj.AddComponent<RectTransform>();
+            estRect.anchorMin = new Vector2(0.06f, 0.10f);
+            estRect.anchorMax = new Vector2(0.94f, 0.30f);
+            estRect.offsetMin = Vector2.zero;
+            estRect.offsetMax = Vector2.zero;
+            var eStatusText = estObj.AddComponent<TextMeshProUGUI>();
+            eStatusText.fontSize = 15;
+            eStatusText.alignment = TextAlignmentOptions.Left;
+            eStatusText.color = new Color(1f, 0.8f, 0.8f);
+            eStatusText.text = "";
 
             // 4.5 Command Menu (Bottom Right)
             var cmdMenu = new GameObject("CommandMenu");
             cmdMenu.transform.SetParent(canvasGo.transform, false);
             var cmRect = cmdMenu.AddComponent<RectTransform>();
             cmRect.anchorMin = new Vector2(0.76f, 0.04f);
-            cmRect.anchorMax = new Vector2(0.97f, 0.27f);
+            cmRect.anchorMax = new Vector2(0.97f, 0.33f);
             cmRect.offsetMin = Vector2.zero;
             cmRect.offsetMax = Vector2.zero;
             var cmVlg = cmdMenu.AddComponent<VerticalLayoutGroup>();
@@ -328,7 +433,7 @@ namespace Expedition33.EditorTools
             var atktComp = atkTm.AddComponent<TextMeshProUGUI>();
             atktComp.text = "ATTACK  <color=#00D0FF>[+1 AP]</color>";
             atktComp.alignment = TextAlignmentOptions.Center;
-            atktComp.fontSize = 19;
+            atktComp.fontSize = 18;
             atktComp.fontStyle = FontStyles.Bold;
 
             // Skills Button
@@ -345,7 +450,7 @@ namespace Expedition33.EditorTools
             var sktComp = skTm.AddComponent<TextMeshProUGUI>();
             sktComp.text = "SKILLS";
             sktComp.alignment = TextAlignmentOptions.Center;
-            sktComp.fontSize = 19;
+            sktComp.fontSize = 18;
             sktComp.fontStyle = FontStyles.Bold;
 
             // Free Aim Button
@@ -362,8 +467,25 @@ namespace Expedition33.EditorTools
             var fatComp = faTm.AddComponent<TextMeshProUGUI>();
             fatComp.text = "FREE AIM  <color=#00D0FF>[1 AP]</color>";
             fatComp.alignment = TextAlignmentOptions.Center;
-            fatComp.fontSize = 19;
+            fatComp.fontSize = 18;
             fatComp.fontStyle = FontStyles.Bold;
+
+            // Stance Button
+            var stanceBtnObj = new GameObject("Button_Stance");
+            stanceBtnObj.transform.SetParent(cmdMenu.transform, false);
+            var stImg = stanceBtnObj.AddComponent<Image>();
+            stImg.color = new Color(0.18f, 0.22f, 0.34f, 0.95f);
+            var stanceBtn = stanceBtnObj.AddComponent<Button>();
+            var stTm = new GameObject("Text");
+            stTm.transform.SetParent(stanceBtnObj.transform, false);
+            var sttRect = stTm.AddComponent<RectTransform>();
+            sttRect.anchorMin = Vector2.zero;
+            sttRect.anchorMax = Vector2.one;
+            var sttComp = stTm.AddComponent<TextMeshProUGUI>();
+            sttComp.text = "STANCE: BAL";
+            sttComp.alignment = TextAlignmentOptions.Center;
+            sttComp.fontSize = 18;
+            sttComp.fontStyle = FontStyles.Bold;
 
             // Pass Button
             var passBtnObj = new GameObject("Button_Pass");
@@ -378,6 +500,8 @@ namespace Expedition33.EditorTools
             passtRect.anchorMax = Vector2.one;
             var passtComp = passTm.AddComponent<TextMeshProUGUI>();
             passtComp.text = "PASS TURN";
+            passtComp.alignment = TextAlignmentOptions.Center;
+            passtComp.fontSize = 17;
             passtComp.alignment = TextAlignmentOptions.Center;
             passtComp.fontSize = 17;
 
@@ -622,6 +746,7 @@ namespace Expedition33.EditorTools
             fatfRect.offsetMin = Vector2.zero;
             fatfRect.offsetMax = Vector2.zero;
             var fatfImg = faTimerFill.AddComponent<Image>();
+            fatfImg.sprite = solidWhiteSprite;
             fatfImg.type = Image.Type.Filled;
             fatfImg.fillMethod = Image.FillMethod.Horizontal;
             fatfImg.fillOrigin = (int)Image.OriginHorizontal.Left;
@@ -734,14 +859,21 @@ namespace Expedition33.EditorTools
             soHud.FindProperty("_playerNameText").objectReferenceValue = pnText;
             soHud.FindProperty("_playerApPipsContainer").objectReferenceValue = pipsObj.transform;
             soHud.FindProperty("_playerApText").objectReferenceValue = patText;
+            soHud.FindProperty("_playerOverchargeText").objectReferenceValue = pocText;
+            soHud.FindProperty("_playerStanceText").objectReferenceValue = pstText;
+            soHud.FindProperty("_playerStatusText").objectReferenceValue = pStatusText;
             soHud.FindProperty("_enemyHpFill").objectReferenceValue = ehpFillImg;
             soHud.FindProperty("_enemyHpText").objectReferenceValue = ehtText;
             soHud.FindProperty("_enemyNameText").objectReferenceValue = enText;
+            soHud.FindProperty("_enemyBreakFill").objectReferenceValue = eBreakFillImg;
+            soHud.FindProperty("_enemyBreakText").objectReferenceValue = eBreakText;
+            soHud.FindProperty("_enemyStatusText").objectReferenceValue = eStatusText;
             soHud.FindProperty("_timelineText").objectReferenceValue = tlText;
             soHud.FindProperty("_commandMenuRoot").objectReferenceValue = cmdMenu;
             soHud.FindProperty("_attackButton").objectReferenceValue = atkBtn;
             soHud.FindProperty("_skillsButton").objectReferenceValue = skBtn;
             soHud.FindProperty("_freeAimButton").objectReferenceValue = faBtn;
+            soHud.FindProperty("_stanceButton").objectReferenceValue = stanceBtn;
             soHud.FindProperty("_passButton").objectReferenceValue = passBtn;
             soHud.FindProperty("_skillMenuRoot").objectReferenceValue = skillMenuPanel;
             soHud.FindProperty("_skillButtonsContainer").objectReferenceValue = skillContainer.transform;
@@ -755,14 +887,14 @@ namespace Expedition33.EditorTools
             var skillCleave = AssetDatabase.LoadAssetAtPath<SkillDefinitionSO>(dataDir + "/Skill_OverchargeCleave.asset");
             if (skillCleave == null)
             {
-                skillCleave = SkillDefinitionSO.CreateSkill("Overcharge Cleave", 3, 2.2f, "Heavy devastating blow with bonus break force.");
+                skillCleave = SkillDefinitionSO.CreateSkill("Overcharge Cleave", 3, 2.2f, "Heavy blow discharging Overcharge for bonus break force.", breakDamage: 50, status: StatusEffectType.Burn, statusDuration: 2, consumesOvercharge: true);
                 AssetDatabase.CreateAsset(skillCleave, dataDir + "/Skill_OverchargeCleave.asset");
             }
 
             var skillFlurry = AssetDatabase.LoadAssetAtPath<SkillDefinitionSO>(dataDir + "/Skill_SwiftFlurry.asset");
             if (skillFlurry == null)
             {
-                skillFlurry = SkillDefinitionSO.CreateSkill("Swift Flurry", 2, 1.5f, "Quick dual-hit flurry.");
+                skillFlurry = SkillDefinitionSO.CreateSkill("Swift Flurry", 2, 1.5f, "Quick dual-hit flurry inflicting Weaken.", breakDamage: 25, status: StatusEffectType.Weaken, statusDuration: 2, consumesOvercharge: false);
                 AssetDatabase.CreateAsset(skillFlurry, dataDir + "/Skill_SwiftFlurry.asset");
             }
 

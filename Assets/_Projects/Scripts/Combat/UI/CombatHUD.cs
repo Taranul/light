@@ -15,11 +15,17 @@ namespace Expedition33.Combat
         [SerializeField] private TMP_Text _playerNameText;
         [SerializeField] private Transform _playerApPipsContainer;
         [SerializeField] private TMP_Text _playerApText;
+        [SerializeField] private TMP_Text _playerOverchargeText;
+        [SerializeField] private TMP_Text _playerStanceText;
+        [SerializeField] private TMP_Text _playerStatusText;
 
         [Header("Enemy Status")]
         [SerializeField] private Image _enemyHpFill;
         [SerializeField] private TMP_Text _enemyHpText;
         [SerializeField] private TMP_Text _enemyNameText;
+        [SerializeField] private Image _enemyBreakFill;
+        [SerializeField] private TMP_Text _enemyBreakText;
+        [SerializeField] private TMP_Text _enemyStatusText;
 
         [Header("Turn Timeline")]
         [SerializeField] private TMP_Text _timelineText;
@@ -29,6 +35,7 @@ namespace Expedition33.Combat
         [SerializeField] private Button _attackButton;
         [SerializeField] private Button _skillsButton;
         [SerializeField] private Button _freeAimButton;
+        [SerializeField] private Button _stanceButton;
         [SerializeField] private Button _passButton;
 
         [Header("Skill Submenu")]
@@ -44,6 +51,7 @@ namespace Expedition33.Combat
         public event Action OnSkillsMenuRequested;
         public event Action<SkillDefinitionSO> OnSkillSelected;
         public event Action OnFreeAimSelected;
+        public event Action OnStanceToggleRequested;
         public event Action OnPassSelected;
 
         private ActionPointPool _trackedApPool;
@@ -69,6 +77,11 @@ namespace Expedition33.Combat
             if (_freeAimButton != null)
             {
                 _freeAimButton.onClick.AddListener(() => OnFreeAimSelected?.Invoke());
+            }
+
+            if (_stanceButton != null)
+            {
+                _stanceButton.onClick.AddListener(() => OnStanceToggleRequested?.Invoke());
             }
 
             if (_passButton != null)
@@ -224,6 +237,9 @@ namespace Expedition33.Combat
                 _freeAimButton.interactable = visible && canAffordAim;
             }
 
+            if (_stanceButton != null)
+                _stanceButton.interactable = visible;
+
             if (_passButton != null)
                 _passButton.interactable = visible;
         }
@@ -302,6 +318,99 @@ namespace Expedition33.Combat
             {
                 _battleLogText.text = message;
             }
+        }
+
+        public void UpdateEnemyBreak(int current, int max, bool isBroken)
+        {
+            float ratio = max > 0 ? Mathf.Clamp01((float)current / max) : 0f;
+
+            if (_enemyBreakFill != null)
+            {
+                _enemyBreakFill.DOKill();
+                DOTween.To(() => _enemyBreakFill.fillAmount, x => _enemyBreakFill.fillAmount = x, ratio, 0.2f).SetEase(Ease.OutQuad);
+                _enemyBreakFill.color = isBroken ? new Color(1f, 0.4f, 0.1f, 1f) : new Color(0.85f, 0.5f, 1f, 1f);
+            }
+
+            if (_enemyBreakText != null)
+            {
+                _enemyBreakText.text = isBroken
+                    ? "<color=#FF8822><b>★ BROKEN! ★</b></color>"
+                    : $"BREAK  <b>{current}</b> / {max}";
+            }
+        }
+
+        public void UpdatePlayerOvercharge(int current, int max)
+        {
+            if (_playerOverchargeText != null)
+            {
+                string pips = "";
+                for (int i = 0; i < max; i++)
+                {
+                    pips += i < current ? "<color=#FFE838>■</color> " : "<color=#444455>□</color> ";
+                }
+                _playerOverchargeText.text = $"OVERCHARGE: {pips}";
+            }
+        }
+
+        public void UpdatePlayerStance(CombatStance stance)
+        {
+            if (_playerStanceText != null)
+            {
+                string colorHex = stance switch
+                {
+                    CombatStance.Offensive => "#FF5555",
+                    CombatStance.Defensive => "#44D0FF",
+                    CombatStance.Virtuoso => "#FFD700",
+                    _ => "#CCCCCC"
+                };
+                _playerStanceText.text = $"STANCE: <color={colorHex}><b>{stance.ToString().ToUpper()}</b></color>";
+            }
+
+            if (_stanceButton != null)
+            {
+                var txt = _stanceButton.GetComponentInChildren<TMP_Text>();
+                if (txt != null)
+                {
+                    txt.text = $"STANCE: {stance.ToString().Substring(0, 3).ToUpper()}";
+                }
+            }
+        }
+
+        public void UpdatePlayerStatuses(IReadOnlyList<ActiveStatusEffect> statuses)
+        {
+            if (_playerStatusText != null)
+            {
+                _playerStatusText.text = FormatStatusString(statuses);
+            }
+        }
+
+        public void UpdateEnemyStatuses(IReadOnlyList<ActiveStatusEffect> statuses)
+        {
+            if (_enemyStatusText != null)
+            {
+                _enemyStatusText.text = FormatStatusString(statuses);
+            }
+        }
+
+        private string FormatStatusString(IReadOnlyList<ActiveStatusEffect> statuses)
+        {
+            if (statuses == null || statuses.Count == 0)
+                return string.Empty;
+
+            var list = new List<string>();
+            foreach (var s in statuses)
+            {
+                string color = s.Type switch
+                {
+                    StatusEffectType.Burn => "#FF5533",
+                    StatusEffectType.Haste => "#33FF88",
+                    StatusEffectType.Weaken => "#AA77FF",
+                    StatusEffectType.Vulnerable => "#FF88AA",
+                    _ => "#FFFFFF"
+                };
+                list.Add($"<color={color}>[{s.Type} {s.RemainingTurns}T]</color>");
+            }
+            return string.Join(" ", list);
         }
     }
 }

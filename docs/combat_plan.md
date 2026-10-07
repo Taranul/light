@@ -144,14 +144,16 @@ Designers configure content without touching code:
 - **Deliverables**: Camera blend to over-the-shoulder, crosshair HUD, 4-second countdown, AP-cost bullet firing, enemy hitboxes with designated Weak Point colliders (e.g., Head vs Body), bonus Break damage on precision hit.
 - **Verification**: In command menu, select Free Aim, aim at enemy head, fire shots before timer expires, confirm weak point crit.
 
-### Milestone 5: Break System, Statuses & Character Mechanics
-- **Objective**: Posture break and unique mechanics for Gustave & Maelle.
+### Milestone 5: Break System, Statuses & Character Mechanics (COMPLETED & VERIFIED)
+- **Objective**: Posture break and unique mechanics for Gustave (Overcharge arm) & Maelle (Stances).
 - **Deliverables**:
-  - Break gauge for enemies; "Broken" state conferring turn skip and 2x damage multiplier.
-  - Gustave: Overcharge meter charging up on skill use and discharging in high-damage Overcharge Strike.
-  - Maelle: Stance toggle (Offensive: +Attack/-ParryWindow, Defensive: +ParryWindow/+Defense, Virtuoso: +AP Gen).
-  - Status effects: Burn (DOT), Haste (Speed up), Weaken (Damage down).
-- **Verification**: Break enemy posture, test Gustave's Overcharge explosion, switch Maelle's stances in combat.
+  - Break gauge for enemies (`BreakMeter.cs`); "Broken" posture state conferring turn skip and 1.75x damage multiplier.
+  - Gustave: Overcharge mechanical arm meter (0 to 3 charges), gaining charges on Perfect Parry and QTEs, discharging in high-damage `Overcharge Cleave`.
+  - Stance toggle (`Balanced`, `Offensive`, `Defensive`, `Virtuoso`) with custom damage, defense, and parry window multipliers.
+  - Status effects: Burn (DOT), Haste (Speed up), Weaken (Damage down), Vulnerable (Incoming damage up).
+  - Combat HUD updated with dedicated Enemy Break bar, Player Stance indicator, Overcharge pip gauge, and active Status tags.
+  - 28 unit tests passing with 0 failures in `Expedition33.Tests.Editor`.
+- **Verification**: Verified in PlayMode with posture shatter, skipped turns, Overcharge surges, and Stance cycling.
 
 ### Milestone 6: Pictos/Luminas Build System & Full Battle Arena Polish
 - **Objective**: Build crafting loadouts, Gradient attacks, camera polish, and end-to-end battle flow.

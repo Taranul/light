@@ -9,7 +9,8 @@ namespace Expedition33.Combat
             DefenseActionType action,
             float inputTime,
             float strikeTime,
-            HitWindowDefinition window)
+            HitWindowDefinition window,
+            float parryWindowMultiplier = 1.0f)
         {
             if (action == DefenseActionType.None)
                 return DefenseOutcome.Miss;
@@ -27,7 +28,7 @@ namespace Expedition33.Combat
                     {
                         return DefenseOutcome.InvalidAction;
                     }
-                    if (timeDiff <= window.ParryHalfWindow)
+                    if (timeDiff <= window.ParryHalfWindow * parryWindowMultiplier)
                     {
                         return DefenseOutcome.ParrySuccess;
                     }
