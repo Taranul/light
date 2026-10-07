@@ -16,6 +16,8 @@ namespace Expedition33.Combat
         private AudioClip _dodgeClip;
         private AudioClip _jumpClip;
         private AudioClip _telegraphClip;
+        private AudioClip _qteSuccessClip;
+        private AudioClip _apGainClip;
 
         private void Awake()
         {
@@ -73,6 +75,16 @@ namespace Expedition33.Combat
             PlayClip(_telegraphClip, 0.6f);
         }
 
+        public void PlayQTESuccess()
+        {
+            PlayClip(_qteSuccessClip, 0.85f);
+        }
+
+        public void PlayAPGain()
+        {
+            PlayClip(_apGainClip, 0.65f);
+        }
+
         private void PlayClip(AudioClip clip, float volume)
         {
             if (clip != null && _audioSource != null)
@@ -100,6 +112,12 @@ namespace Expedition33.Combat
 
             // Telegraph tension hum (subtle rising pitch)
             _telegraphClip = CreateSweepTone(200f, 320f, 0.35f);
+
+            // QTE success chime (bright chime)
+            _qteSuccessClip = CreateMelody(new[] { 880f, 1318.51f }, 0.10f);
+
+            // AP gain energy pip (upward double chirp)
+            _apGainClip = CreateSweepTone(400f, 800f, 0.09f);
         }
 
         private AudioClip CreateTone(float frequency, float duration, float volume, bool noiseDecay)

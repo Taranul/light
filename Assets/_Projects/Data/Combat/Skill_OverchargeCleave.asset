@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00846067632f3ef4fb2e05fd60540ec4, type: 3}
+  m_Name: Skill_OverchargeCleave
+  m_EditorClassIdentifier: Expedition33.Combat::Expedition33.Combat.SkillDefinitionSO
+  _skillName: Overcharge Cleave
+  _apCost: 3
+  _damageMultiplier: 2.2
+  _description: Heavy devastating blow with bonus break force.
+  _qteConfig:
+    _duration: 0.85
+    _sweetSpotTime: 0.58
+    _perfectHalfWindow: 0.08
+    _goodHalfWindow: 0.16
+  _hitCount: 1

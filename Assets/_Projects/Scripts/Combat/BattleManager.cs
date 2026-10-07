@@ -20,21 +20,26 @@ namespace Expedition33.Combat
         [SerializeField] private GameFeelManager _gameFeel;
         [SerializeField] private InputBuffer _inputBuffer;
         [SerializeField] private TimingVisualizerUI _timingVisualizer;
+        [SerializeField] private OffensiveQTEWidget _qteWidget;
 
-        [Header("Enemy Attack Patterns")]
+        [Header("Skills & Patterns")]
+        [SerializeField] private List<SkillDefinitionSO> _playerSkills;
         [SerializeField] private EnemyAttackPatternSO[] _enemyAttackPatterns;
 
         private BattleStateMachine _stateMachine;
         private TurnTimeline _timeline;
+        private ActionPointPool _apPool;
         private CombatActorStats _playerStats;
         private CombatActorStats _enemyStats;
 
         private bool _playerActionChosen;
         private CombatActionType _selectedAction;
+        private SkillDefinitionSO _selectedSkill;
         private int _enemyTurnCounter;
 
         public CombatActorStats PlayerStats => _playerStats;
         public CombatActorStats EnemyStats => _enemyStats;
+        public ActionPointPool APPool => _apPool;
         public BattleStateMachine StateMachine => _stateMachine;
 
         private void Start()
@@ -46,6 +51,7 @@ namespace Expedition33.Combat
         {
             _stateMachine = new BattleStateMachine(BattleState.Intro);
             _timeline = new TurnTimeline();
+            _apPool = new ActionPointPool(maxAP: 6, startingAP: 2);
 
             // Setup player stats
             if (_playerData != null)
@@ -65,6 +71,12 @@ namespace Expedition33.Combat
             else
             {
                 _enemyStats = new CombatActorStats("Expedition Stalker", 90, 18, 4, 9, false);
+            }
+
+            // Setup default skills if none assigned
+            if (_playerSkills == null || _playerSkills.Count == 0)
+            {
+                CreateFallbackSkills();
             }
 
             // Ensure fallback default patterns if none configured
@@ -90,15 +102,25 @@ namespace Expedition33.Combat
             // Connect HUD
             if (_hud != null)
             {
-                _hud.SetupPlayerStatus(_playerStats);
+                _hud.SetupPlayerStatus(_playerStats, _apPool, _playerSkills);
                 _hud.SetupEnemyStatus(_enemyStats);
                 _hud.OnAttackSelected += HandlePlayerAttackSelected;
+                _hud.OnSkillSelected += HandlePlayerSkillSelected;
                 _hud.OnPassSelected += HandlePlayerPassSelected;
             }
 
             RefreshTimelineHUD();
 
             StartCoroutine(BattleRoutine());
+        }
+
+        private void CreateFallbackSkills()
+        {
+            _playerSkills = new List<SkillDefinitionSO>
+            {
+                SkillDefinitionSO.CreateSkill("Overcharge Cleave", 3, 2.2f, "Heavy devastating blow with bonus break force."),
+                SkillDefinitionSO.CreateSkill("Swift Flurry", 2, 1.5f, "Quick dual-hit flurry.")
+            };
         }
 
         private void CreateFallbackPatterns()
@@ -112,13 +134,26 @@ namespace Expedition33.Combat
         {
             _audioPlayer?.PlayButtonClick();
             _selectedAction = CombatActionType.Attack;
+            _selectedSkill = null;
             _playerActionChosen = true;
+        }
+
+        private void HandlePlayerSkillSelected(SkillDefinitionSO skill)
+        {
+            _audioPlayer?.PlayButtonClick();
+            if (_apPool.CanSpend(skill.APCost))
+            {
+                _selectedAction = CombatActionType.Skill;
+                _selectedSkill = skill;
+                _playerActionChosen = true;
+            }
         }
 
         private void HandlePlayerPassSelected()
         {
             _audioPlayer?.PlayButtonClick();
             _selectedAction = CombatActionType.Pass;
+            _selectedSkill = null;
             _playerActionChosen = true;
         }
 
@@ -179,7 +214,7 @@ namespace Expedition33.Combat
         {
             _stateMachine.ChangeState(BattleState.PlayerTurn);
             _hud?.SetTurnBanner("PLAYER TURN");
-            _hud?.AddLog("Choose your action.");
+            _hud?.AddLog("Choose Attack, Skill, or Pass.");
             _audioPlayer?.PlayTurnStart();
             _hud?.SetCommandMenuVisible(true);
 
@@ -194,7 +229,11 @@ namespace Expedition33.Combat
 
             if (_selectedAction == CombatActionType.Attack)
             {
-                yield return ExecutePlayerAttack();
+                yield return ExecutePlayerBasicAttack();
+            }
+            else if (_selectedAction == CombatActionType.Skill && _selectedSkill != null)
+            {
+                yield return ExecutePlayerSkill(_selectedSkill);
             }
             else
             {
@@ -203,32 +242,80 @@ namespace Expedition33.Combat
             }
         }
 
-        private IEnumerator ExecutePlayerAttack()
+        private IEnumerator ExecutePlayerBasicAttack()
         {
+            // Basic attack generates +1 AP
+            _apPool.Generate(1);
+            _audioPlayer?.PlayAPGain();
+
             bool arrived = false;
-            _playerView.AnimateApproach(_enemyView.HomePosition, 0.45f, () => arrived = true);
+            _playerView.AnimateApproach(_enemyView.HomePosition, 0.42f, () => arrived = true);
             while (!arrived)
                 yield return null;
 
             _playerView.PlayAttack();
-            yield return new WaitForSeconds(0.75f);
 
-            DamageResult result = DamageCalculator.CalculateDamage(_playerStats, _enemyStats, 1f, false);
+            // Run offensive QTE during strike windup
+            QTEOutcome qteResult = QTEOutcome.None;
+            bool qteComplete = false;
+
+            if (_qteWidget != null)
+            {
+                var qteDef = new QTEWindowDefinition(0.75f, 0.50f, 0.08f, 0.16f);
+                _qteWidget.StartQTE(qteDef, _enemyView.transform.position, res =>
+                {
+                    qteResult = res;
+                    qteComplete = true;
+                });
+            }
+            else
+            {
+                yield return new WaitForSeconds(0.50f);
+                qteComplete = true;
+            }
+
+            while (!qteComplete)
+                yield return null;
+
+            // Damage multiplier based on QTE precision
+            float multiplier = 1f;
+            bool isCrit = false;
+
+            if (qteResult == QTEOutcome.Perfect)
+            {
+                multiplier = 1.5f;
+                isCrit = true;
+                _audioPlayer?.PlayQTESuccess();
+                _hud?.AddLog("<color=#FFE838>★ PERFECT QTE! Critical Strike! ★</color>");
+            }
+            else if (qteResult == QTEOutcome.Good)
+            {
+                multiplier = 1.15f;
+                _hud?.AddLog("<color=#66FF88>Good timing on strike.</color>");
+            }
+            else
+            {
+                multiplier = 0.85f;
+                _hud?.AddLog("<color=#AAAAAA>Strike timing missed.</color>");
+            }
+
+            DamageResult result = DamageCalculator.CalculateDamage(_playerStats, _enemyStats, multiplier, isCrit);
             _enemyStats.ApplyDamage(result.MitigatedDamage);
 
             _enemyView.PlayHitReact();
-            _enemyView.FlashColor(Color.red, 0.2f);
+            _enemyView.FlashColor(isCrit ? Color.yellow : Color.red, 0.2f);
             _audioPlayer?.PlayHit();
-            _gameFeel?.TriggerHitStop(result.IsCritical);
-            _gameFeel?.TriggerCameraShake(1f);
+            _gameFeel?.TriggerHitStop(isCrit);
+            _gameFeel?.TriggerCameraShake(isCrit ? 1.4f : 1f);
 
             FloatingCombatText.Spawn(
                 _enemyView.transform.position,
-                $"-{result.MitigatedDamage}",
-                result.IsCritical ? Color.yellow : Color.white
+                isCrit ? $"-{result.MitigatedDamage} [CRIT]" : $"-{result.MitigatedDamage}",
+                isCrit ? Color.yellow : Color.white,
+                isCrit ? 1.4f : 1f
             );
 
-            _hud?.AddLog($"{_playerStats.Name} dealt {result.MitigatedDamage} damage to {_enemyStats.Name}!");
+            _hud?.AddLog($"{_playerStats.Name} dealt {result.MitigatedDamage} damage! (+1 AP)");
             yield return new WaitForSeconds(0.4f);
 
             if (!_enemyStats.IsDefeated)
@@ -242,12 +329,90 @@ namespace Expedition33.Combat
                 yield return null;
         }
 
+        private IEnumerator ExecutePlayerSkill(SkillDefinitionSO skill)
+        {
+            _apPool.TrySpend(skill.APCost);
+            _hud?.AddLog($"Gustave unleashes <color=#55AAFF>{skill.SkillName}</color> (-{skill.APCost} AP)!");
+
+            bool arrived = false;
+            _playerView.AnimateApproach(_enemyView.HomePosition, 0.38f, () => arrived = true);
+            while (!arrived)
+                yield return null;
+
+            _playerView.PlayAttack();
+
+            // Run Skill QTE
+            QTEOutcome qteResult = QTEOutcome.None;
+            bool qteComplete = false;
+
+            if (_qteWidget != null)
+            {
+                _qteWidget.StartQTE(skill.QTEConfig, _enemyView.transform.position, res =>
+                {
+                    qteResult = res;
+                    qteComplete = true;
+                });
+            }
+            else
+            {
+                yield return new WaitForSeconds(0.6f);
+                qteComplete = true;
+            }
+
+            while (!qteComplete)
+                yield return null;
+
+            float bonusMultiplier = 1f;
+            bool isCrit = false;
+
+            if (qteResult == QTEOutcome.Perfect)
+            {
+                bonusMultiplier = 1.4f;
+                isCrit = true;
+                _audioPlayer?.PlayQTESuccess();
+                _hud?.AddLog("<color=#FFE838>★ PERFECT SKILL TIMING! ★</color>");
+            }
+            else if (qteResult == QTEOutcome.Good)
+            {
+                bonusMultiplier = 1.1f;
+            }
+
+            float finalMultiplier = skill.DamageMultiplier * bonusMultiplier;
+            DamageResult result = DamageCalculator.CalculateDamage(_playerStats, _enemyStats, finalMultiplier, isCrit);
+            _enemyStats.ApplyDamage(result.MitigatedDamage);
+
+            _enemyView.PlayHitReact();
+            _enemyView.FlashColor(Color.yellow, 0.25f);
+            _audioPlayer?.PlayHit();
+            _gameFeel?.TriggerHitStop(true);
+            _gameFeel?.TriggerCameraShake(1.6f);
+
+            FloatingCombatText.Spawn(
+                _enemyView.transform.position,
+                $"-{result.MitigatedDamage} [{skill.SkillName.ToUpper()}]",
+                Color.yellow,
+                1.5f
+            );
+
+            _hud?.AddLog($"{skill.SkillName} dealt {result.MitigatedDamage} damage to {_enemyStats.Name}!");
+            yield return new WaitForSeconds(0.45f);
+
+            if (!_enemyStats.IsDefeated)
+            {
+                _enemyView.PlayIdle();
+            }
+
+            bool returned = false;
+            _playerView.AnimateReturn(0.38f, () => returned = true);
+            while (!returned)
+                yield return null;
+        }
+
         private IEnumerator EnemyTurnRoutine()
         {
             _stateMachine.ChangeState(BattleState.EnemyTurn);
             _hud?.SetTurnBanner("ENEMY TURN");
 
-            // Alternate between attack patterns
             EnemyAttackPatternSO pattern = _enemyAttackPatterns[_enemyTurnCounter % _enemyAttackPatterns.Length];
             _enemyTurnCounter++;
 
@@ -270,7 +435,6 @@ namespace Expedition33.Combat
                 if (_playerStats.IsDefeated)
                     break;
 
-                // Setup visualizer
                 float totalStrikeDuration = strike.HitTimeOffset + 0.35f;
                 float hitNormalized = strike.HitTimeOffset / totalStrikeDuration;
                 float parryHalfNormalized = strike.ParryHalfWindow / totalStrikeDuration;
@@ -300,7 +464,6 @@ namespace Expedition33.Combat
                 DefenseActionType capturedAction = DefenseActionType.None;
                 float capturedTimestamp = -1f;
 
-                // Telegraph windup loop
                 while (elapsed < strike.HitTimeOffset)
                 {
                     elapsed += Time.deltaTime;
@@ -311,13 +474,12 @@ namespace Expedition33.Combat
                         _timingVisualizer.SetCursorProgress(progress);
                     }
 
-                    // Continuously check for buffered defense input
                     if (_inputBuffer != null && capturedAction == DefenseActionType.None)
                     {
                         if (_inputBuffer.TryConsumeInput(elapsed, out DefenseActionType action, out float ts))
                         {
                             capturedAction = action;
-                            capturedTimestamp = elapsed; // relative time of input
+                            capturedTimestamp = elapsed;
                         }
                     }
 
@@ -329,7 +491,6 @@ namespace Expedition33.Combat
                     _inputBuffer.SetListening(false);
                 }
 
-                // Evaluate outcome
                 DefenseOutcome outcome = ActiveDefenseEvaluator.Evaluate(
                     capturedAction,
                     capturedTimestamp,
@@ -342,7 +503,6 @@ namespace Expedition33.Combat
                     _timingVisualizer.ShowResult(outcome);
                 }
 
-                // Resolve outcome
                 yield return ResolveDefenseOutcome(outcome, strike);
                 yield return new WaitForSeconds(0.4f);
             }
@@ -368,21 +528,22 @@ namespace Expedition33.Combat
             switch (outcome)
             {
                 case DefenseOutcome.ParrySuccess:
+                    _apPool.Generate(2); // Perfect parry reward: +2 AP!
+                    _audioPlayer?.PlayAPGain();
                     _audioPlayer?.PlayParrySuccess();
                     _gameFeel?.TriggerHitStop(true);
                     _gameFeel?.TriggerCameraShake(1.6f);
 
                     FloatingCombatText.Spawn(
                         _playerView.transform.position,
-                        "PERFECT PARRY!",
+                        "PERFECT PARRY! (+2 AP)",
                         Color.green,
                         1.4f
                     );
-                    _hud?.AddLog("<color=#00FF88>★ PERFECT PARRY! Counter-strike triggered! ★</color>");
+                    _hud?.AddLog("<color=#00FF88>★ PERFECT PARRY! (+2 AP) Counter-strike triggered! ★</color>");
 
                     yield return new WaitForSeconds(0.2f);
 
-                    // Immediate Counter-Attack
                     bool counterComplete = false;
                     _playerView.PlayCounterAttack(_enemyView.transform.position, () =>
                     {
@@ -408,32 +569,36 @@ namespace Expedition33.Combat
                     break;
 
                 case DefenseOutcome.DodgeSuccess:
+                    _apPool.Generate(1); // Dodge reward: +1 AP!
+                    _audioPlayer?.PlayAPGain();
                     _playerView.PlayDodge();
                     _audioPlayer?.PlayDodgeSuccess();
                     FloatingCombatText.Spawn(
                         _playerView.transform.position,
-                        "DODGED!",
+                        "DODGED! (+1 AP)",
                         new Color(1f, 0.9f, 0.2f),
                         1.2f
                     );
-                    _hud?.AddLog("<color=#FFE040>Dodge successful! Damage completely evaded.</color>");
+                    _hud?.AddLog("<color=#FFE040>Dodge successful! Damage evaded (+1 AP).</color>");
                     yield return new WaitForSeconds(0.5f);
                     break;
 
                 case DefenseOutcome.JumpSuccess:
+                    _apPool.Generate(1); // Jump reward: +1 AP!
+                    _audioPlayer?.PlayAPGain();
                     _playerView.PlayJump();
                     _audioPlayer?.PlayJumpSuccess();
                     FloatingCombatText.Spawn(
                         _playerView.transform.position,
-                        "JUMPED!",
+                        "JUMPED! (+1 AP)",
                         new Color(0.3f, 0.8f, 1f),
                         1.2f
                     );
-                    _hud?.AddLog("<color=#40C0FF>Jump successful! Low sweep evaded.</color>");
+                    _hud?.AddLog("<color=#40C0FF>Jump successful! Low sweep evaded (+1 AP).</color>");
                     yield return new WaitForSeconds(0.6f);
                     break;
 
-                default: // Miss or InvalidAction
+                default:
                     DamageResult result = DamageCalculator.CalculateDamage(_enemyStats, _playerStats, 1f, false);
                     _playerStats.ApplyDamage(result.MitigatedDamage);
 
@@ -460,6 +625,7 @@ namespace Expedition33.Combat
             if (_hud != null)
             {
                 _hud.OnAttackSelected -= HandlePlayerAttackSelected;
+                _hud.OnSkillSelected -= HandlePlayerSkillSelected;
                 _hud.OnPassSelected -= HandlePlayerPassSelected;
             }
         }
