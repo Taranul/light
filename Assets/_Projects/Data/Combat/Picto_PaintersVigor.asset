@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4621bd80d823d4e43bc8686e5b7eaddc, type: 3}
+  m_Name: Picto_PaintersVigor
+  m_EditorClassIdentifier: Expedition33.Combat::Expedition33.Combat.PictoDefinitionSO
+  _pictoName: Painter's Vigor
+  _description: Enhances physical strike force and builds extra Gradient on parry.
+  _accentColor: {r: 1, g: 1, b: 1, a: 1}
+  _luminaCost: 2
+  _attackBonus: 0.12
+  _defenseBonus: 0.08
+  _speedBonus: 0
+  _maxHpBonus: 0
+  _passiveType: 4
+  _passiveValue: 15

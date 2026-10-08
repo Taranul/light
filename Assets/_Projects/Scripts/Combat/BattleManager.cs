@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Expedition33.Combat
 {
@@ -24,10 +25,16 @@ namespace Expedition33.Combat
         [SerializeField] private OffensiveQTEWidget _qteWidget;
         [SerializeField] private CombatCameraController _cameraController;
         [SerializeField] private FreeAimHUD _freeAimHUD;
+        [SerializeField] private BattleResultScreen _resultScreen;
+        [SerializeField] private DebugCheatPanel _cheatPanel;
 
         [Header("Skills & Patterns")]
         [SerializeField] private List<SkillDefinitionSO> _playerSkills;
         [SerializeField] private EnemyAttackPatternSO[] _enemyAttackPatterns;
+
+        [Header("Pictos & Luminas Loadout")]
+        [SerializeField] private List<PictoDefinitionSO> _equippedPictos;
+        [SerializeField] private List<LuminaDefinitionSO> _equippedLuminas;
 
         private BattleStateMachine _stateMachine;
         private TurnTimeline _timeline;
@@ -39,6 +46,8 @@ namespace Expedition33.Combat
         private StanceController _playerStanceController;
         private StatusEffectController _playerStatusController;
         private StatusEffectController _enemyStatusController;
+        private GradientMeter _gradientMeter;
+        private PictoLoadout _playerLoadout;
 
         private bool _playerActionChosen;
         private CombatActionType _selectedAction;
@@ -54,6 +63,10 @@ namespace Expedition33.Combat
         public StanceController PlayerStanceController => _playerStanceController;
         public StatusEffectController PlayerStatusController => _playerStatusController;
         public StatusEffectController EnemyStatusController => _enemyStatusController;
+        public GradientMeter GradientMeter => _gradientMeter;
+        public PictoLoadout PlayerLoadout => _playerLoadout;
+        public BattleResultScreen ResultScreen => _resultScreen;
+        public DebugCheatPanel CheatPanel => _cheatPanel;
 
         private void Awake()
         {
@@ -146,6 +159,53 @@ namespace Expedition33.Combat
                 _hud?.UpdatePlayerStance(stance);
             };
 
+            // Setup Milestone 6: Gradient Meter & Picto Loadout
+            _gradientMeter = new GradientMeter(maxCharge: 100);
+            _gradientMeter.OnGradientChanged += (cur, max) =>
+            {
+                _hud?.UpdateGradient(cur, max);
+            };
+            _gradientMeter.OnGradientReady += () =>
+            {
+                _audioPlayer?.PlayOverchargeSurge();
+                _hud?.AddLog("<color=#FFA000><b>★ GRADIENT SUPER ATTACK READY! ★</b></color>");
+            };
+
+            _playerLoadout = new PictoLoadout(maxLuminaPoints: 10);
+            if (_equippedPictos != null && _equippedPictos.Count > 0)
+            {
+                foreach (var p in _equippedPictos)
+                    _playerLoadout.TryEquipPicto(p);
+            }
+            else
+            {
+                CreateFallbackLoadout();
+            }
+
+            if (_equippedLuminas != null && _equippedLuminas.Count > 0)
+            {
+                foreach (var l in _equippedLuminas)
+                    _playerLoadout.TryEquipLumina(l);
+            }
+
+            int startOvercharge = _playerLoadout.GetStartingOvercharge();
+            if (startOvercharge > 0)
+            {
+                _playerOverchargeMeter.AddCharge(startOvercharge);
+            }
+
+            // Register Cheat Panel
+            if (_cheatPanel != null)
+            {
+                _cheatPanel.Register(_apPool, _playerOverchargeMeter, _enemyBreakMeter, _gradientMeter, _playerStats);
+            }
+
+            // Connect Result Screen
+            if (_resultScreen != null)
+            {
+                _resultScreen.OnRetryRequested += HandleRetryBattle;
+            }
+
             // Connect HUD
             if (_hud != null)
             {
@@ -154,17 +214,59 @@ namespace Expedition33.Combat
                 _hud.OnAttackSelected += HandlePlayerAttackSelected;
                 _hud.OnSkillSelected += HandlePlayerSkillSelected;
                 _hud.OnFreeAimSelected += HandlePlayerFreeAimSelected;
+                _hud.OnGradientSelected += HandlePlayerGradientSelected;
                 _hud.OnStanceToggleRequested += HandleStanceToggleRequested;
                 _hud.OnPassSelected += HandlePlayerPassSelected;
 
                 _hud.UpdateEnemyBreak(_enemyBreakMeter.CurrentBreak, _enemyBreakMeter.MaxBreak, false);
                 _hud.UpdatePlayerOvercharge(_playerOverchargeMeter.CurrentCharges, _playerOverchargeMeter.MaxCharges);
                 _hud.UpdatePlayerStance(_playerStanceController.CurrentStance);
+                _hud.UpdateGradient(_gradientMeter.CurrentCharge, _gradientMeter.MaxCharge);
             }
 
             RefreshTimelineHUD();
 
             StartCoroutine(BattleRoutine());
+        }
+
+        private void CreateFallbackLoadout()
+        {
+            var p1 = PictoDefinitionSO.Create(
+                "Painter's Vigor",
+                "Enhances physical strike force and builds extra Gradient on parry.",
+                luminaCost: 2,
+                atkBonus: 0.12f,
+                defBonus: 0.08f,
+                passive: PictoPassiveType.GradientOnParry,
+                passiveValue: 15f
+            );
+            var p2 = PictoDefinitionSO.Create(
+                "Cadence of Lumiere",
+                "Extends parry window by 40ms and drains life on successful strikes.",
+                luminaCost: 3,
+                atkBonus: 0.05f,
+                passive: PictoPassiveType.LifeSteal,
+                passiveValue: 0.20f
+            );
+            var l1 = LuminaDefinitionSO.Create(
+                "Lumina of Flow",
+                "Generates +1 AP on player turn start.",
+                cost: 2,
+                effect: LuminaEffectType.APPerTurn,
+                value: 1f
+            );
+            var l2 = LuminaDefinitionSO.Create(
+                "Lumina of Radiance",
+                "Builds +5 bonus Gradient charge on every hit.",
+                cost: 1,
+                effect: LuminaEffectType.GradientOnHit,
+                value: 5f
+            );
+
+            _playerLoadout.TryEquipPicto(p1);
+            _playerLoadout.TryEquipPicto(p2);
+            _playerLoadout.TryEquipLumina(l1);
+            _playerLoadout.TryEquipLumina(l2);
         }
 
         private void CreateFallbackSkills()
@@ -213,6 +315,22 @@ namespace Expedition33.Combat
             }
         }
 
+        private void HandlePlayerGradientSelected()
+        {
+            _audioPlayer?.PlayButtonClick();
+            if (_gradientMeter != null && _gradientMeter.IsReady)
+            {
+                _selectedAction = CombatActionType.GradientAttack;
+                _selectedSkill = null;
+                _playerActionChosen = true;
+            }
+        }
+
+        private void HandleRetryBattle()
+        {
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        }
+
         private void HandleStanceToggleRequested()
         {
             var next = _playerStanceController.CycleNextStance();
@@ -240,11 +358,34 @@ namespace Expedition33.Combat
             float statusAtk = _playerStatusController != null ? _playerStatusController.GetAttackMultiplier() : 1.0f;
             float incomingMod = _enemyStatusController != null ? _enemyStatusController.GetIncomingDamageMultiplier() : 1.0f;
             float brokenMod = (_enemyBreakMeter != null && _enemyBreakMeter.IsBroken) ? _enemyBreakMeter.BrokenDamageMultiplier : 1.0f;
+            float pictoAtk = _playerLoadout != null ? (1.0f + _playerLoadout.GetTotalAttackBonus()) : 1.0f;
 
-            float combinedMultiplier = baseDamageMultiplier * stanceAtk * statusAtk * incomingMod * brokenMod;
+            float combinedMultiplier = baseDamageMultiplier * stanceAtk * statusAtk * incomingMod * brokenMod * pictoAtk;
 
             DamageResult result = DamageCalculator.CalculateDamage(_playerStats, _enemyStats, combinedMultiplier, isCrit);
             _enemyStats.ApplyDamage(result.MitigatedDamage);
+
+            // Life Steal passive from equipped Pictos
+            if (_playerLoadout != null)
+            {
+                foreach (var picto in _playerLoadout.Pictos)
+                {
+                    if (picto.PassiveType == PictoPassiveType.LifeSteal && picto.PassiveValue > 0f)
+                    {
+                        int heal = Mathf.RoundToInt(result.MitigatedDamage * picto.PassiveValue);
+                        if (heal > 0 && !_playerStats.IsDefeated)
+                        {
+                            _playerStats.Heal(heal);
+                            FloatingCombatText.Spawn(_playerView.transform.position + Vector3.up * 1.8f, $"+{heal} HP", Color.green, 1.1f);
+                            _hud?.AddLog($"<color=#44FF88>Life Steal restored {heal} HP!</color>");
+                        }
+                    }
+                }
+            }
+
+            // Build team Gradient charge on hit
+            int gradHitBonus = _playerLoadout != null ? _playerLoadout.GetGradientOnHitBonus() : 0;
+            _gradientMeter?.AddCharge(12 + gradHitBonus);
 
             bool brokenThisHit = _enemyBreakMeter != null && _enemyBreakMeter.AddBreak(baseBreakAmount);
 
@@ -318,6 +459,8 @@ namespace Expedition33.Combat
                 _audioPlayer?.PlayVictory();
                 _hud?.SetTurnBanner("<color=#55FF88>VICTORY!</color>");
                 _hud?.AddLog("Enemy defeated in battle!");
+                yield return new WaitForSeconds(0.8f);
+                _resultScreen?.ShowVictory();
             }
             else if (_playerStats.IsDefeated)
             {
@@ -326,6 +469,8 @@ namespace Expedition33.Combat
                 _audioPlayer?.PlayDefeat();
                 _hud?.SetTurnBanner("<color=#FF5555>DEFEAT</color>");
                 _hud?.AddLog("Party was defeated...");
+                yield return new WaitForSeconds(0.8f);
+                _resultScreen?.ShowDefeat();
             }
         }
 
@@ -351,6 +496,14 @@ namespace Expedition33.Combat
                 _hud?.AddLog($"Virtuoso Stance generated +{bonusAP} bonus AP!");
             }
 
+            // Lumina bonus AP (e.g. Lumina of Flow)
+            int luminaAP = _playerLoadout != null ? _playerLoadout.GetBonusAPPerTurn() : 0;
+            if (luminaAP > 0)
+            {
+                _apPool.Generate(luminaAP);
+                _hud?.AddLog($"<color=#70D0FF>Lumina of Flow generated +{luminaAP} bonus AP!</color>");
+            }
+
             _hud?.SetCommandMenuVisible(true);
 
             _playerActionChosen = false;
@@ -373,6 +526,10 @@ namespace Expedition33.Combat
             else if (_selectedAction == CombatActionType.FreeAim)
             {
                 yield return ExecutePlayerFreeAim();
+            }
+            else if (_selectedAction == CombatActionType.GradientAttack)
+            {
+                yield return ExecutePlayerGradientAttack();
             }
             else
             {
@@ -684,6 +841,84 @@ namespace Expedition33.Combat
             yield return new WaitForSeconds(0.3f);
         }
 
+        private IEnumerator ExecutePlayerGradientAttack()
+        {
+            if (_gradientMeter == null || !_gradientMeter.ConsumeForSuperAttack())
+                yield break;
+
+            _hud?.SetTurnBanner("<color=#FFA000><b>GRADIENT SUPER ATTACK</b></color>");
+            _hud?.AddLog("<color=#FFA000><b>★ Gustave unleashes EXPEDITION ARTS: LUMIERE ECLIPSE! ★</b></color>");
+            _audioPlayer?.PlayOverchargeSurge();
+
+            // 1. Camera zoom/cinematic blend
+            bool camReady = false;
+            if (_cameraController != null)
+            {
+                _cameraController.BlendToFreeAim(0.25f, () => camReady = true);
+            }
+            else
+            {
+                camReady = true;
+            }
+            while (!camReady) yield return null;
+
+            yield return new WaitForSeconds(0.2f);
+
+            // 2. High-speed approach
+            bool arrived = false;
+            _playerView.AnimateApproach(_enemyView.HomePosition, 0.28f, () => arrived = true);
+            while (!arrived) yield return null;
+
+            // 3. Multi-hit cinematic sequence
+            _playerView.PlayAttack();
+            _audioPlayer?.PlayHit();
+            _gameFeel?.TriggerHitStop(false);
+            _gameFeel?.TriggerCameraShake(1.5f);
+            _enemyView.PlayHitReact();
+            _enemyView.FlashColor(Color.yellow, 0.2f);
+            FloatingCombatText.Spawn(_enemyView.transform.position + Vector3.up * 1.2f, "LUMIERE...", Color.yellow, 0.8f);
+
+            yield return new WaitForSeconds(0.35f);
+
+            // Finisher explosion
+            _playerView.PlayAttack();
+            _audioPlayer?.PlayWeakPointHit();
+            _audioPlayer?.PlayBreakShatter();
+            _gameFeel?.TriggerHitStop(true);
+            _gameFeel?.TriggerCameraShake(3.0f);
+            _enemyView.PlayHitReact();
+            _enemyView.FlashColor(Color.white, 0.35f);
+
+            // Massive damage + break force
+            float gradientDmgMult = 3.6f;
+            int gradientBreak = 80;
+            ApplyDamageAndBreakToEnemy(gradientDmgMult, gradientBreak, true, "Lumiere Eclipse", _enemyView.transform.position);
+
+            yield return new WaitForSeconds(0.6f);
+
+            if (!_enemyStats.IsDefeated)
+            {
+                _enemyView.PlayIdle();
+            }
+
+            // 4. Return to camera and home pos
+            bool returned = false;
+            _playerView.AnimateReturn(0.35f, () => returned = true);
+
+            bool camReturned = false;
+            if (_cameraController != null)
+            {
+                _cameraController.BlendToDefault(0.35f, () => camReturned = true);
+            }
+            else
+            {
+                camReturned = true;
+            }
+
+            while (!returned || !camReturned) yield return null;
+            yield return new WaitForSeconds(0.3f);
+        }
+
         private IEnumerator EnemyTurnRoutine()
         {
             _stateMachine.ChangeState(BattleState.EnemyTurn);
@@ -791,7 +1026,11 @@ namespace Expedition33.Combat
                     _inputBuffer.SetListening(false);
                 }
 
-                float parryWindowMult = _playerStanceController != null ? _playerStanceController.GetParryWindowMultiplier() : 1.0f;
+                float stanceParryWindowMult = _playerStanceController != null ? _playerStanceController.GetParryWindowMultiplier() : 1.0f;
+                float cheatParryMult = _cheatPanel != null ? _cheatPanel.GetDebugParryWindowMultiplier() : 1.0f;
+                float pictoParryExt = _playerLoadout != null ? _playerLoadout.GetParryWindowExtension() : 0f;
+                float parryWindowMult = stanceParryWindowMult * cheatParryMult * (1.0f + pictoParryExt);
+
                 DefenseOutcome outcome = ActiveDefenseEvaluator.Evaluate(
                     capturedAction,
                     capturedTimestamp,
@@ -827,11 +1066,14 @@ namespace Expedition33.Combat
 
         private IEnumerator ResolveDefenseOutcome(DefenseOutcome outcome, HitWindowDefinition strike)
         {
+            int gradDefBonus = _playerLoadout != null ? _playerLoadout.GetGradientOnDefenseBonus() : 0;
+
             switch (outcome)
             {
                 case DefenseOutcome.ParrySuccess:
                     _apPool.Generate(2);
                     _playerOverchargeMeter.AddCharge(1);
+                    _gradientMeter?.AddCharge(25 + gradDefBonus);
                     _audioPlayer?.PlayAPGain();
                     _audioPlayer?.PlayParrySuccess();
                     _gameFeel?.TriggerHitStop(true);
@@ -859,6 +1101,7 @@ namespace Expedition33.Combat
 
                 case DefenseOutcome.DodgeSuccess:
                     _apPool.Generate(1);
+                    _gradientMeter?.AddCharge(15 + gradDefBonus);
                     _audioPlayer?.PlayAPGain();
                     _playerView.PlayDodge();
                     _audioPlayer?.PlayDodgeSuccess();
@@ -874,6 +1117,7 @@ namespace Expedition33.Combat
 
                 case DefenseOutcome.JumpSuccess:
                     _apPool.Generate(1);
+                    _gradientMeter?.AddCharge(15 + gradDefBonus);
                     _audioPlayer?.PlayAPGain();
                     _playerView.PlayJump();
                     _audioPlayer?.PlayJumpSuccess();
@@ -888,27 +1132,37 @@ namespace Expedition33.Combat
                     break;
 
                 default:
+                    _gradientMeter?.AddCharge(8);
                     float stanceDefMod = _playerStanceController != null ? _playerStanceController.GetDefenseMultiplier() : 1.0f;
                     float enemyAtkMod = _enemyStatusController != null ? _enemyStatusController.GetAttackMultiplier() : 1.0f;
                     float incomingMod = _playerStatusController != null ? _playerStatusController.GetIncomingDamageMultiplier() : 1.0f;
+                    float pictoDef = _playerLoadout != null ? (1.0f + _playerLoadout.GetTotalDefenseBonus()) : 1.0f;
 
-                    float combinedMultiplier = enemyAtkMod * incomingMod / Mathf.Max(0.1f, stanceDefMod);
+                    float combinedMultiplier = enemyAtkMod * incomingMod / Mathf.Max(0.1f, stanceDefMod * pictoDef);
                     DamageResult result = DamageCalculator.CalculateDamage(_enemyStats, _playerStats, combinedMultiplier, false);
-                    _playerStats.ApplyDamage(result.MitigatedDamage);
 
-                    _playerView.PlayHitReact();
-                    _playerView.FlashColor(Color.red, 0.22f);
-                    _audioPlayer?.PlayHit();
-                    _gameFeel?.TriggerHitStop(false);
-                    _gameFeel?.TriggerCameraShake(1f);
+                    if (_cheatPanel != null && _cheatPanel.GodModeActive)
+                    {
+                        FloatingCombatText.Spawn(_playerView.transform.position, "IMMUNE (GOD MODE)", Color.green, 1.2f);
+                        _hud?.AddLog("<color=#44FF44>[GOD MODE] Gustave took 0 damage!</color>");
+                    }
+                    else
+                    {
+                        _playerStats.ApplyDamage(result.MitigatedDamage);
+                        _playerView.PlayHitReact();
+                        _playerView.FlashColor(Color.red, 0.22f);
+                        _audioPlayer?.PlayHit();
+                        _gameFeel?.TriggerHitStop(false);
+                        _gameFeel?.TriggerCameraShake(1f);
 
-                    FloatingCombatText.Spawn(
-                        _playerView.transform.position,
-                        $"-{result.MitigatedDamage}",
-                        Color.red,
-                        1f
-                    );
-                    _hud?.AddLog($"Gustave took {result.MitigatedDamage} damage!");
+                        FloatingCombatText.Spawn(
+                            _playerView.transform.position,
+                            $"-{result.MitigatedDamage}",
+                            Color.red,
+                            1f
+                        );
+                        _hud?.AddLog($"Gustave took {result.MitigatedDamage} damage!");
+                    }
                     yield return new WaitForSeconds(0.4f);
                     break;
             }
@@ -921,8 +1175,14 @@ namespace Expedition33.Combat
                 _hud.OnAttackSelected -= HandlePlayerAttackSelected;
                 _hud.OnSkillSelected -= HandlePlayerSkillSelected;
                 _hud.OnFreeAimSelected -= HandlePlayerFreeAimSelected;
+                _hud.OnGradientSelected -= HandlePlayerGradientSelected;
                 _hud.OnStanceToggleRequested -= HandleStanceToggleRequested;
                 _hud.OnPassSelected -= HandlePlayerPassSelected;
+            }
+
+            if (_resultScreen != null)
+            {
+                _resultScreen.OnRetryRequested -= HandleRetryBattle;
             }
         }
     }

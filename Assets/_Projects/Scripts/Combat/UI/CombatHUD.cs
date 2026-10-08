@@ -35,6 +35,7 @@ namespace Expedition33.Combat
         [SerializeField] private Button _attackButton;
         [SerializeField] private Button _skillsButton;
         [SerializeField] private Button _freeAimButton;
+        [SerializeField] private Button _gradientButton;
         [SerializeField] private Button _stanceButton;
         [SerializeField] private Button _passButton;
 
@@ -42,6 +43,10 @@ namespace Expedition33.Combat
         [SerializeField] private GameObject _skillMenuRoot;
         [SerializeField] private Transform _skillButtonsContainer;
         [SerializeField] private Button _skillBackBtn;
+
+        [Header("Gradient Meter")]
+        [SerializeField] private Image _gradientFill;
+        [SerializeField] private TMP_Text _gradientText;
 
         [Header("Banner & Feedback")]
         [SerializeField] private TMP_Text _turnBannerText;
@@ -51,12 +56,14 @@ namespace Expedition33.Combat
         public event Action OnSkillsMenuRequested;
         public event Action<SkillDefinitionSO> OnSkillSelected;
         public event Action OnFreeAimSelected;
+        public event Action OnGradientSelected;
         public event Action OnStanceToggleRequested;
         public event Action OnPassSelected;
 
         private ActionPointPool _trackedApPool;
         private List<SkillDefinitionSO> _availableSkills;
         private readonly List<Image> _apPipImages = new();
+        private bool _isGradientReady;
 
         private void Awake()
         {
@@ -77,6 +84,11 @@ namespace Expedition33.Combat
             if (_freeAimButton != null)
             {
                 _freeAimButton.onClick.AddListener(() => OnFreeAimSelected?.Invoke());
+            }
+
+            if (_gradientButton != null)
+            {
+                _gradientButton.onClick.AddListener(() => OnGradientSelected?.Invoke());
             }
 
             if (_stanceButton != null)
@@ -236,6 +248,9 @@ namespace Expedition33.Combat
                 bool canAffordAim = _trackedApPool != null && _trackedApPool.CanSpend(1);
                 _freeAimButton.interactable = visible && canAffordAim;
             }
+
+            if (_gradientButton != null)
+                _gradientButton.interactable = visible && _isGradientReady;
 
             if (_stanceButton != null)
                 _stanceButton.interactable = visible;
@@ -412,5 +427,34 @@ namespace Expedition33.Combat
             }
             return string.Join(" ", list);
         }
+
+        public void UpdateGradient(int current, int max)
+        {
+            float ratio = max > 0 ? Mathf.Clamp01((float)current / max) : 0f;
+            _isGradientReady = max > 0 && current >= max;
+
+            if (_gradientFill != null)
+            {
+                _gradientFill.DOKill();
+                DOTween.To(() => _gradientFill.fillAmount, x => _gradientFill.fillAmount = x, ratio, 0.25f).SetEase(Ease.OutQuad);
+                _gradientFill.color = _isGradientReady
+                    ? new Color(1f, 0.6f, 0f, 1f)
+                    : new Color(0.55f, 0.2f, 0.9f, 1f);
+            }
+
+            if (_gradientText != null)
+            {
+                _gradientText.text = _isGradientReady
+                    ? "<color=#FFA000><b>★ GRADIENT READY! ★</b></color>"
+                    : $"GRADIENT  <b>{current}</b> / {max}";
+            }
+
+            if (_gradientButton != null && _commandMenuRoot != null && _commandMenuRoot.activeSelf)
+            {
+                _gradientButton.interactable = _isGradientReady;
+            }
+        }
     }
 }
+
+

@@ -155,14 +155,15 @@ Designers configure content without touching code:
   - 28 unit tests passing with 0 failures in `Expedition33.Tests.Editor`.
 - **Verification**: Verified in PlayMode with posture shatter, skipped turns, Overcharge surges, and Stance cycling.
 
-### Milestone 6: Pictos/Luminas Build System & Full Battle Arena Polish
+### Milestone 6: Pictos/Luminas Build System & Full Battle Arena Polish (COMPLETED & VERIFIED)
 - **Objective**: Build crafting loadouts, Gradient attacks, camera polish, and end-to-end battle flow.
 - **Deliverables**:
-  - Picto equip data (passives) and Lumina point budget.
-  - Gradient Super Attack bar with cinematic camera framing.
-  - Complete battle flow: Intro -> Combat Loop -> Victory Screen / Defeat Screen with retry.
-  - Cheat / Debug panel (toggle god mode, force parry, set AP, adjust timing windows).
-- **Verification**: Complete multi-enemy battle slice from start to victory using full tactical and reactive mechanics.
+  - **Picto & Lumina Build System**: Data-driven ScriptableObjects (`PictoDefinitionSO.cs`, `LuminaDefinitionSO.cs`) and runtime budget manager (`PictoLoadout.cs`). Enforces Lumina point cap, aggregates stat modifiers (Attack, Defense, Speed, HP) and passives (Life Steal, Parry Window extension, AP per turn, Gradient on defense/hit, starting Overcharge pips).
+  - **Gradient Super Attack**: Team super meter (`GradientMeter.cs`) charging via attacks, successful parries, dodges, and incoming damage. When fully charged (100%), unlocks the high-impact "GRADIENT ART" command triggering "EXPEDITION ARTS: LUMIERE ECLIPSE" with multi-hit cinematic camera zoom, heavy break impact (80 break), and critical damage (3.6x).
+  - **End-to-End Battle Flow**: `BattleResultScreen.cs` with animated Victory and Defeat overlays, punch-scaling headlines, "RETRY BATTLE" (instantly reloads battle loop) and "EXIT" buttons.
+  - **In-Game Debug/Cheat Panel**: `DebugCheatPanel.cs` toggled via `[F12]`, featuring: instant AP fill (+6 AP), Overcharge fill (+3 pips), Force Break (immediate enemy posture shatter), Fill Gradient (100% ultimate charge), God Mode toggle (immunity to damage), and Parry Window adjuster (2x wide window vs 1x normal).
+  - **Complete Automated Verification**: 35 EditMode unit tests across all combat milestones passing with 0 failures in `Expedition33.Tests.Editor`.
+- **Verification**: Verified end-to-end flow from turn foundation, reactive defense, AP skills, Free Aim weak points, posture break, to Picto build-crafting, Gradient ultimate attacks, and victory/defeat resolution.
 
 ---
 

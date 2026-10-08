@@ -5,6 +5,7 @@ namespace Expedition33.Combat
         Attack,
         Skill,
         FreeAim,
+        GradientAttack,
         Defend,
         Item,
         Pass

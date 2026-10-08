@@ -409,7 +409,7 @@ namespace Expedition33.EditorTools
             cmdMenu.transform.SetParent(canvasGo.transform, false);
             var cmRect = cmdMenu.AddComponent<RectTransform>();
             cmRect.anchorMin = new Vector2(0.76f, 0.04f);
-            cmRect.anchorMax = new Vector2(0.97f, 0.33f);
+            cmRect.anchorMax = new Vector2(0.97f, 0.38f);
             cmRect.offsetMin = Vector2.zero;
             cmRect.offsetMax = Vector2.zero;
             var cmVlg = cmdMenu.AddComponent<VerticalLayoutGroup>();
@@ -469,6 +469,23 @@ namespace Expedition33.EditorTools
             fatComp.alignment = TextAlignmentOptions.Center;
             fatComp.fontSize = 18;
             fatComp.fontStyle = FontStyles.Bold;
+
+            // Gradient Super Attack Button
+            var gradBtnObj = new GameObject("Button_Gradient");
+            gradBtnObj.transform.SetParent(cmdMenu.transform, false);
+            var gradBtnImg = gradBtnObj.AddComponent<Image>();
+            gradBtnImg.color = new Color(0.35f, 0.15f, 0.48f, 0.95f);
+            var gradBtn = gradBtnObj.AddComponent<Button>();
+            var gradTm = new GameObject("Text");
+            gradTm.transform.SetParent(gradBtnObj.transform, false);
+            var gradtRect = gradTm.AddComponent<RectTransform>();
+            gradtRect.anchorMin = Vector2.zero;
+            gradtRect.anchorMax = Vector2.one;
+            var gradtComp = gradTm.AddComponent<TextMeshProUGUI>();
+            gradtComp.text = "GRADIENT ART";
+            gradtComp.alignment = TextAlignmentOptions.Center;
+            gradtComp.fontSize = 18;
+            gradtComp.fontStyle = FontStyles.Bold;
 
             // Stance Button
             var stanceBtnObj = new GameObject("Button_Stance");
@@ -561,6 +578,46 @@ namespace Expedition33.EditorTools
             logText.alignment = TextAlignmentOptions.Center;
             logText.color = new Color(0.9f, 0.9f, 0.9f, 0.85f);
             logText.text = "Battle initialized.";
+
+            // 4.8 Gradient Meter Bar (Center Lower, above Battle Log)
+            var gradObj = new GameObject("GradientMeterBar");
+            gradObj.transform.SetParent(canvasGo.transform, false);
+            var gradRect = gradObj.AddComponent<RectTransform>();
+            gradRect.anchorMin = new Vector2(0.33f, 0.13f);
+            gradRect.anchorMax = new Vector2(0.67f, 0.17f);
+            gradRect.offsetMin = Vector2.zero;
+            gradRect.offsetMax = Vector2.zero;
+
+            var gradBgImg = gradObj.AddComponent<Image>();
+            gradBgImg.color = new Color(0.12f, 0.08f, 0.18f, 0.92f);
+
+            var gradFillObj = new GameObject("GradientFill");
+            gradFillObj.transform.SetParent(gradObj.transform, false);
+            var gfRect = gradFillObj.AddComponent<RectTransform>();
+            gfRect.anchorMin = Vector2.zero;
+            gfRect.anchorMax = Vector2.one;
+            gfRect.offsetMin = Vector2.zero;
+            gfRect.offsetMax = Vector2.zero;
+            var gradFillImg = gradFillObj.AddComponent<Image>();
+            gradFillImg.sprite = solidWhiteSprite;
+            gradFillImg.type = Image.Type.Filled;
+            gradFillImg.fillMethod = Image.FillMethod.Horizontal;
+            gradFillImg.fillAmount = 0f;
+            gradFillImg.color = new Color(0.55f, 0.2f, 0.9f, 1f);
+
+            var gradTextObj = new GameObject("GradientText");
+            gradTextObj.transform.SetParent(gradObj.transform, false);
+            var gtRect = gradTextObj.AddComponent<RectTransform>();
+            gtRect.anchorMin = Vector2.zero;
+            gtRect.anchorMax = Vector2.one;
+            gtRect.offsetMin = Vector2.zero;
+            gtRect.offsetMax = Vector2.zero;
+            var gradText = gradTextObj.AddComponent<TextMeshProUGUI>();
+            gradText.fontSize = 17;
+            gradText.fontStyle = FontStyles.Bold;
+            gradText.alignment = TextAlignmentOptions.Center;
+            gradText.color = new Color(1f, 0.95f, 0.9f);
+            gradText.text = "GRADIENT  <b>0</b> / 100";
 
             // 5. Timing Visualizer UI (Center Screen for Defense)
             var timingObj = new GameObject("TimingVisualizer");
@@ -873,16 +930,214 @@ namespace Expedition33.EditorTools
             soHud.FindProperty("_attackButton").objectReferenceValue = atkBtn;
             soHud.FindProperty("_skillsButton").objectReferenceValue = skBtn;
             soHud.FindProperty("_freeAimButton").objectReferenceValue = faBtn;
+            soHud.FindProperty("_gradientButton").objectReferenceValue = gradBtn;
             soHud.FindProperty("_stanceButton").objectReferenceValue = stanceBtn;
             soHud.FindProperty("_passButton").objectReferenceValue = passBtn;
             soHud.FindProperty("_skillMenuRoot").objectReferenceValue = skillMenuPanel;
             soHud.FindProperty("_skillButtonsContainer").objectReferenceValue = skillContainer.transform;
             soHud.FindProperty("_skillBackBtn").objectReferenceValue = bkBtn;
+            soHud.FindProperty("_gradientFill").objectReferenceValue = gradFillImg;
+            soHud.FindProperty("_gradientText").objectReferenceValue = gradText;
             soHud.FindProperty("_turnBannerText").objectReferenceValue = bText;
             soHud.FindProperty("_battleLogText").objectReferenceValue = logText;
             soHud.ApplyModifiedPropertiesWithoutUndo();
 
-            // Create Skills and Attack Pattern Assets
+            // 8. Battle Result Screen UI
+            var resultScreenGo = new GameObject("BattleResultScreen");
+            resultScreenGo.transform.SetParent(canvasGo.transform, false);
+            var rsRect = resultScreenGo.AddComponent<RectTransform>();
+            rsRect.anchorMin = Vector2.zero;
+            rsRect.anchorMax = Vector2.one;
+            rsRect.offsetMin = Vector2.zero;
+            rsRect.offsetMax = Vector2.zero;
+            var rsComp = resultScreenGo.AddComponent<BattleResultScreen>();
+
+            var rsOverlay = new GameObject("Overlay");
+            rsOverlay.transform.SetParent(resultScreenGo.transform, false);
+            var rsoRect = rsOverlay.AddComponent<RectTransform>();
+            rsoRect.anchorMin = Vector2.zero;
+            rsoRect.anchorMax = Vector2.one;
+            rsoRect.offsetMin = Vector2.zero;
+            rsoRect.offsetMax = Vector2.zero;
+            var rsoImg = rsOverlay.AddComponent<Image>();
+            rsoImg.color = new Color(0.04f, 0.05f, 0.08f, 0.90f);
+
+            var rsPanel = new GameObject("Panel");
+            rsPanel.transform.SetParent(resultScreenGo.transform, false);
+            var rspRect = rsPanel.AddComponent<RectTransform>();
+            rspRect.anchorMin = new Vector2(0.25f, 0.25f);
+            rspRect.anchorMax = new Vector2(0.75f, 0.75f);
+            rspRect.offsetMin = Vector2.zero;
+            rspRect.offsetMax = Vector2.zero;
+
+            var rsHeadline = new GameObject("HeadlineText");
+            rsHeadline.transform.SetParent(rsPanel.transform, false);
+            var rshRect = rsHeadline.AddComponent<RectTransform>();
+            rshRect.anchorMin = new Vector2(0.05f, 0.65f);
+            rshRect.anchorMax = new Vector2(0.95f, 0.95f);
+            rshRect.offsetMin = Vector2.zero;
+            rshRect.offsetMax = Vector2.zero;
+            var rshText = rsHeadline.AddComponent<TextMeshProUGUI>();
+            rshText.fontSize = 54;
+            rshText.fontStyle = FontStyles.Bold;
+            rshText.alignment = TextAlignmentOptions.Center;
+            rshText.text = "VICTORY!";
+
+            var rsSubtitle = new GameObject("SubtitleText");
+            rsSubtitle.transform.SetParent(rsPanel.transform, false);
+            var rssRect = rsSubtitle.AddComponent<RectTransform>();
+            rssRect.anchorMin = new Vector2(0.05f, 0.45f);
+            rssRect.anchorMax = new Vector2(0.95f, 0.65f);
+            rssRect.offsetMin = Vector2.zero;
+            rssRect.offsetMax = Vector2.zero;
+            var rssText = rsSubtitle.AddComponent<TextMeshProUGUI>();
+            rssText.fontSize = 22;
+            rssText.alignment = TextAlignmentOptions.Center;
+            rssText.color = new Color(0.85f, 0.85f, 0.85f);
+            rssText.text = "The expedition moves forward.";
+
+            // Retry Button
+            var rsRetryObj = new GameObject("Button_Retry");
+            rsRetryObj.transform.SetParent(rsPanel.transform, false);
+            var rsrRect = rsRetryObj.AddComponent<RectTransform>();
+            rsrRect.anchorMin = new Vector2(0.20f, 0.22f);
+            rsrRect.anchorMax = new Vector2(0.80f, 0.38f);
+            rsrRect.offsetMin = Vector2.zero;
+            rsrRect.offsetMax = Vector2.zero;
+            var rsrImg = rsRetryObj.AddComponent<Image>();
+            rsrImg.color = new Color(0.15f, 0.45f, 0.25f, 0.95f);
+            var rsRetryBtn = rsRetryObj.AddComponent<Button>();
+            var rsrTm = new GameObject("Text");
+            rsrTm.transform.SetParent(rsRetryObj.transform, false);
+            var rsrtRect = rsrTm.AddComponent<RectTransform>();
+            rsrtRect.anchorMin = Vector2.zero;
+            rsrtRect.anchorMax = Vector2.one;
+            var rsrtComp = rsrTm.AddComponent<TextMeshProUGUI>();
+            rsrtComp.text = "RETRY BATTLE";
+            rsrtComp.alignment = TextAlignmentOptions.Center;
+            rsrtComp.fontSize = 22;
+            rsrtComp.fontStyle = FontStyles.Bold;
+
+            // Quit Button
+            var rsQuitObj = new GameObject("Button_Quit");
+            rsQuitObj.transform.SetParent(rsPanel.transform, false);
+            var rsqRect = rsQuitObj.AddComponent<RectTransform>();
+            rsqRect.anchorMin = new Vector2(0.30f, 0.05f);
+            rsqRect.anchorMax = new Vector2(0.70f, 0.18f);
+            rsqRect.offsetMin = Vector2.zero;
+            rsqRect.offsetMax = Vector2.zero;
+            var rsqImg = rsQuitObj.AddComponent<Image>();
+            rsqImg.color = new Color(0.25f, 0.15f, 0.18f, 0.95f);
+            var rsQuitBtn = rsQuitObj.AddComponent<Button>();
+            var rsqTm = new GameObject("Text");
+            rsqTm.transform.SetParent(rsQuitObj.transform, false);
+            var rsqtRect = rsqTm.AddComponent<RectTransform>();
+            rsqtRect.anchorMin = Vector2.zero;
+            rsqtRect.anchorMax = Vector2.one;
+            var rsqtComp = rsqTm.AddComponent<TextMeshProUGUI>();
+            rsqtComp.text = "EXIT";
+            rsqtComp.alignment = TextAlignmentOptions.Center;
+            rsqtComp.fontSize = 18;
+
+            var soRs = new SerializedObject(rsComp);
+            soRs.FindProperty("_container").objectReferenceValue = resultScreenGo;
+            soRs.FindProperty("_resultText").objectReferenceValue = rshText;
+            soRs.FindProperty("_subtitleText").objectReferenceValue = rssText;
+            soRs.FindProperty("_retryButton").objectReferenceValue = rsRetryBtn;
+            soRs.FindProperty("_quitButton").objectReferenceValue = rsQuitBtn;
+            soRs.FindProperty("_overlayImage").objectReferenceValue = rsoImg;
+            soRs.ApplyModifiedPropertiesWithoutUndo();
+
+            resultScreenGo.SetActive(false);
+
+            // 9. Debug Cheat Panel UI [F12]
+            var cheatPanelGo = new GameObject("DebugCheatPanel");
+            cheatPanelGo.transform.SetParent(canvasGo.transform, false);
+            var cpRect = cheatPanelGo.AddComponent<RectTransform>();
+            cpRect.anchorMin = new Vector2(0.02f, 0.38f);
+            cpRect.anchorMax = new Vector2(0.25f, 0.94f);
+            cpRect.offsetMin = Vector2.zero;
+            cpRect.offsetMax = Vector2.zero;
+            var cpImg = cheatPanelGo.AddComponent<Image>();
+            cpImg.color = new Color(0.05f, 0.07f, 0.10f, 0.94f);
+            var cpComp = cheatPanelGo.AddComponent<DebugCheatPanel>();
+
+            var cpVlg = cheatPanelGo.AddComponent<VerticalLayoutGroup>();
+            cpVlg.spacing = 6f;
+            cpVlg.padding = new RectOffset(8, 8, 8, 8);
+            cpVlg.childControlWidth = true;
+            cpVlg.childControlHeight = true;
+            cpVlg.childForceExpandWidth = true;
+            cpVlg.childForceExpandHeight = false;
+
+            var cpHdrObj = new GameObject("Header");
+            cpHdrObj.transform.SetParent(cheatPanelGo.transform, false);
+            var cphText = cpHdrObj.AddComponent<TextMeshProUGUI>();
+            cphText.text = "CHEAT PANEL [F12]";
+            cphText.fontSize = 18;
+            cphText.fontStyle = FontStyles.Bold;
+            cphText.alignment = TextAlignmentOptions.Center;
+            cphText.color = new Color(1f, 0.85f, 0.2f);
+            var cphLe = cpHdrObj.AddComponent<LayoutElement>();
+            cphLe.minHeight = 28f;
+
+            var cpStatusObj = new GameObject("StatusText");
+            cpStatusObj.transform.SetParent(cheatPanelGo.transform, false);
+            var cpsText = cpStatusObj.AddComponent<TextMeshProUGUI>();
+            cpsText.fontSize = 13;
+            cpsText.alignment = TextAlignmentOptions.Center;
+            cpsText.color = new Color(0.85f, 0.85f, 0.85f);
+            cpsText.text = "GOD MODE: OFF\nPARRY: NORMAL";
+            var cpsLe = cpStatusObj.AddComponent<LayoutElement>();
+            cpsLe.minHeight = 36f;
+
+            Button CreateCheatBtn(string label, Color color)
+            {
+                var bObj = new GameObject($"Btn_{label.Replace(" ", "")}");
+                bObj.transform.SetParent(cheatPanelGo.transform, false);
+                var bImg = bObj.AddComponent<Image>();
+                bImg.color = color;
+                var btn = bObj.AddComponent<Button>();
+                var tObj = new GameObject("Text");
+                tObj.transform.SetParent(bObj.transform, false);
+                var tr = tObj.AddComponent<RectTransform>();
+                tr.anchorMin = Vector2.zero;
+                tr.anchorMax = Vector2.one;
+                var txt = tObj.AddComponent<TextMeshProUGUI>();
+                txt.text = label;
+                txt.fontSize = 14;
+                txt.fontStyle = FontStyles.Bold;
+                txt.alignment = TextAlignmentOptions.Center;
+                var le = bObj.AddComponent<LayoutElement>();
+                le.minHeight = 30f;
+                return btn;
+            }
+
+            var cpFillAPBtn = CreateCheatBtn("Fill AP (+6)", new Color(0.12f, 0.25f, 0.38f, 0.95f));
+            var cpFillOverchargeBtn = CreateCheatBtn("Fill Overcharge (+3)", new Color(0.20f, 0.30f, 0.38f, 0.95f));
+            var cpForceBreakBtn = CreateCheatBtn("Force Enemy Break", new Color(0.35f, 0.15f, 0.25f, 0.95f));
+            var cpFillGradientBtn = CreateCheatBtn("Fill Gradient (100%)", new Color(0.32f, 0.18f, 0.44f, 0.95f));
+            var cpGodModeBtn = CreateCheatBtn("Toggle God Mode", new Color(0.15f, 0.35f, 0.15f, 0.95f));
+            var cpWidenParryBtn = CreateCheatBtn("Widen Parry (2x)", new Color(0.22f, 0.25f, 0.35f, 0.95f));
+            var cpNormalParryBtn = CreateCheatBtn("Normal Parry (1x)", new Color(0.22f, 0.22f, 0.25f, 0.95f));
+            var cpCloseBtn = CreateCheatBtn("Close [F12]", new Color(0.28f, 0.12f, 0.12f, 0.95f));
+
+            var soCp = new SerializedObject(cpComp);
+            soCp.FindProperty("_container").objectReferenceValue = cheatPanelGo;
+            soCp.FindProperty("_statusLabel").objectReferenceValue = cpsText;
+            soCp.FindProperty("_fillAPButton").objectReferenceValue = cpFillAPBtn;
+            soCp.FindProperty("_fillOverchargeButton").objectReferenceValue = cpFillOverchargeBtn;
+            soCp.FindProperty("_forceBreakButton").objectReferenceValue = cpForceBreakBtn;
+            soCp.FindProperty("_fillGradientButton").objectReferenceValue = cpFillGradientBtn;
+            soCp.FindProperty("_godModeButton").objectReferenceValue = cpGodModeBtn;
+            soCp.FindProperty("_widenParryButton").objectReferenceValue = cpWidenParryBtn;
+            soCp.FindProperty("_normalParryButton").objectReferenceValue = cpNormalParryBtn;
+            soCp.FindProperty("_closeButton").objectReferenceValue = cpCloseBtn;
+            soCp.ApplyModifiedPropertiesWithoutUndo();
+
+            cheatPanelGo.SetActive(false);
+
+            // Create Skills, Attack Patterns, Pictos, Luminas
             string dataDir = "Assets/_Projects/Data/Combat";
             var skillCleave = AssetDatabase.LoadAssetAtPath<SkillDefinitionSO>(dataDir + "/Skill_OverchargeCleave.asset");
             if (skillCleave == null)
@@ -912,7 +1167,62 @@ namespace Expedition33.EditorTools
                 AssetDatabase.CreateAsset(patternSweep, dataDir + "/Attack_GroundSweep.asset");
             }
 
-            // 8. Managers Object
+            var pictoVigor = AssetDatabase.LoadAssetAtPath<PictoDefinitionSO>(dataDir + "/Picto_PaintersVigor.asset");
+            if (pictoVigor == null)
+            {
+                pictoVigor = PictoDefinitionSO.Create(
+                    "Painter's Vigor",
+                    "Enhances physical strike force and builds extra Gradient on parry.",
+                    luminaCost: 2,
+                    atkBonus: 0.12f,
+                    defBonus: 0.08f,
+                    passive: PictoPassiveType.GradientOnParry,
+                    passiveValue: 15f
+                );
+                AssetDatabase.CreateAsset(pictoVigor, dataDir + "/Picto_PaintersVigor.asset");
+            }
+
+            var pictoLumiere = AssetDatabase.LoadAssetAtPath<PictoDefinitionSO>(dataDir + "/Picto_CadenceOfLumiere.asset");
+            if (pictoLumiere == null)
+            {
+                pictoLumiere = PictoDefinitionSO.Create(
+                    "Cadence of Lumiere",
+                    "Extends parry window by 40ms and drains life on successful strikes.",
+                    luminaCost: 3,
+                    atkBonus: 0.05f,
+                    passive: PictoPassiveType.LifeSteal,
+                    passiveValue: 0.20f
+                );
+                AssetDatabase.CreateAsset(pictoLumiere, dataDir + "/Picto_CadenceOfLumiere.asset");
+            }
+
+            var luminaFlow = AssetDatabase.LoadAssetAtPath<LuminaDefinitionSO>(dataDir + "/Lumina_Flow.asset");
+            if (luminaFlow == null)
+            {
+                luminaFlow = LuminaDefinitionSO.Create(
+                    "Lumina of Flow",
+                    "Generates +1 AP on player turn start.",
+                    cost: 2,
+                    effect: LuminaEffectType.APPerTurn,
+                    value: 1f
+                );
+                AssetDatabase.CreateAsset(luminaFlow, dataDir + "/Lumina_Flow.asset");
+            }
+
+            var luminaRadiance = AssetDatabase.LoadAssetAtPath<LuminaDefinitionSO>(dataDir + "/Lumina_Radiance.asset");
+            if (luminaRadiance == null)
+            {
+                luminaRadiance = LuminaDefinitionSO.Create(
+                    "Lumina of Radiance",
+                    "Builds +5 bonus Gradient charge on every hit.",
+                    cost: 1,
+                    effect: LuminaEffectType.GradientOnHit,
+                    value: 5f
+                );
+                AssetDatabase.CreateAsset(luminaRadiance, dataDir + "/Lumina_Radiance.asset");
+            }
+
+            // 10. Managers Object
             var mgrObj = new GameObject("BattleManagers");
             var audioPlayer = mgrObj.AddComponent<CombatAudioPlayer>();
             var gameFeel = mgrObj.AddComponent<GameFeelManager>();
@@ -932,6 +1242,8 @@ namespace Expedition33.EditorTools
             soBattle.FindProperty("_qteWidget").objectReferenceValue = qteComp;
             soBattle.FindProperty("_cameraController").objectReferenceValue = camController;
             soBattle.FindProperty("_freeAimHUD").objectReferenceValue = freeAimComp;
+            soBattle.FindProperty("_resultScreen").objectReferenceValue = rsComp;
+            soBattle.FindProperty("_cheatPanel").objectReferenceValue = cpComp;
 
             var skillsProp = soBattle.FindProperty("_playerSkills");
             skillsProp.arraySize = 2;
@@ -943,11 +1255,21 @@ namespace Expedition33.EditorTools
             patternsProp.GetArrayElementAtIndex(0).objectReferenceValue = patternStandard;
             patternsProp.GetArrayElementAtIndex(1).objectReferenceValue = patternSweep;
 
+            var pictosProp = soBattle.FindProperty("_equippedPictos");
+            pictosProp.arraySize = 2;
+            pictosProp.GetArrayElementAtIndex(0).objectReferenceValue = pictoVigor;
+            pictosProp.GetArrayElementAtIndex(1).objectReferenceValue = pictoLumiere;
+
+            var luminasProp = soBattle.FindProperty("_equippedLuminas");
+            luminasProp.arraySize = 2;
+            luminasProp.GetArrayElementAtIndex(0).objectReferenceValue = luminaFlow;
+            luminasProp.GetArrayElementAtIndex(1).objectReferenceValue = luminaRadiance;
+
             soBattle.ApplyModifiedPropertiesWithoutUndo();
 
             // Save Scene
             EditorSceneManager.SaveScene(newScene, "Assets/_Projects/Scenes/CombatSandbox.unity");
-            Debug.Log("[CombatSandboxBuilder] Scene rebuilt with polished UI hierarchy and Free Aim support!");
+            Debug.Log("[CombatSandboxBuilder] Scene rebuilt with Milestone 6 Pictos, Luminas, Gradient Art, Result Screen & Cheat Panel!");
         }
 
         private static Transform FindChildRecursive(Transform parent, string partialName)
