@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 public class CharacterCustomizer : MonoBehaviour
 {
@@ -14,8 +15,16 @@ public class CharacterCustomizer : MonoBehaviour
     public Sprite[] legsSprites;
     private int currentLegsIndex = 0;
 
+    public GameObject headGlow;
+    public GameObject bodyGlow;
+    public GameObject legsGlow;
+
+    private Coroutine activeGlowCoroutine;
+
     void Start()
     {
+        LoadCustomization();
+
         headRenderer.sprite = headSprites[currentHeadIndex];
         bodyRenderer.sprite = bodySprites[currentBodyIndex];
         legsRenderer.sprite = legsSprites[currentLegsIndex];
@@ -30,6 +39,7 @@ public class CharacterCustomizer : MonoBehaviour
         }
 
         headRenderer.sprite = headSprites[currentHeadIndex];
+        activeGlowCoroutine = StartCoroutine(ShowGlowTemporarily(headGlow));
     }
 
     public void PreviousHead()
@@ -39,6 +49,7 @@ public class CharacterCustomizer : MonoBehaviour
             currentHeadIndex = headSprites.Length - 1;
         }
         headRenderer.sprite = headSprites[currentHeadIndex];
+        activeGlowCoroutine = StartCoroutine(ShowGlowTemporarily(headGlow));
     }
 
     public void NextBody()
@@ -50,6 +61,7 @@ public class CharacterCustomizer : MonoBehaviour
         }
 
         bodyRenderer.sprite = bodySprites[currentBodyIndex];
+        activeGlowCoroutine = StartCoroutine(ShowGlowTemporarily(bodyGlow));
     }
 
     public void PreviousBody()
@@ -59,6 +71,7 @@ public class CharacterCustomizer : MonoBehaviour
             currentBodyIndex = bodySprites.Length - 1;
         }
         bodyRenderer.sprite = bodySprites[currentBodyIndex];
+        activeGlowCoroutine = StartCoroutine(ShowGlowTemporarily(bodyGlow));
     }
 
     public void NextLegs()
@@ -70,6 +83,7 @@ public class CharacterCustomizer : MonoBehaviour
         }
 
         legsRenderer.sprite = legsSprites[currentLegsIndex];
+        activeGlowCoroutine = StartCoroutine(ShowGlowTemporarily(legsGlow));
     }
 
     public void PreviousLegs()
@@ -79,5 +93,39 @@ public class CharacterCustomizer : MonoBehaviour
             currentLegsIndex = legsSprites.Length - 1;
         }
         legsRenderer.sprite = legsSprites[currentLegsIndex];
+        activeGlowCoroutine = StartCoroutine(ShowGlowTemporarily(legsGlow));
+    }
+
+    private IEnumerator ShowGlowTemporarily(GameObject glowObject)
+    {
+        if (activeGlowCoroutine != null)
+        {
+            StopCoroutine(activeGlowCoroutine);
+        }
+
+        headGlow.SetActive(false);
+        bodyGlow.SetActive(false);
+        legsGlow.SetActive(false);
+
+        glowObject.SetActive(true);
+        yield return new WaitForSeconds(1.2f);
+        glowObject.SetActive(false);
+    }
+    
+     public void SaveCustomization()
+    {
+        PlayerPrefs.SetInt("SavedHeadIndex", currentHeadIndex);
+        PlayerPrefs.SetInt("SavedBodyIndex", currentBodyIndex);
+        PlayerPrefs.SetInt("SavedLegsIndex", currentLegsIndex);
+        PlayerPrefs.Save();
+
+        Debug.Log("Character customization saved!");
+    }
+
+    private void LoadCustomization()
+    {
+        currentHeadIndex = PlayerPrefs.GetInt("SavedHeadIndex", 0);
+        currentBodyIndex = PlayerPrefs.GetInt("SavedBodyIndex", 0);
+        currentLegsIndex = PlayerPrefs.GetInt("SavedLegsIndex", 0);
     }
 }
