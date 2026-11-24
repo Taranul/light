@@ -70,7 +70,7 @@ namespace Expedition33.Combat
         {
             if (_bufferedAction != DefenseActionType.None)
             {
-                if (Mathf.Abs(evaluationTime - _bufferedTimestamp) <= _bufferWindow || _bufferedTimestamp >= evaluationTime - _bufferWindow)
+                if (Mathf.Abs(evaluationTime - _bufferedTimestamp) <= _bufferWindow)
                 {
                     action = _bufferedAction;
                     timestamp = _bufferedTimestamp;

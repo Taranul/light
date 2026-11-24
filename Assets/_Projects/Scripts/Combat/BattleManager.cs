@@ -566,10 +566,11 @@ namespace Expedition33.Combat
             while (!arrived)
                 yield return null;
 
-            _playerView.PlayAttack();
+            _playerView.PlayAttack(speed: 1.35f);
 
             QTEOutcome qteResult = QTEOutcome.None;
             bool qteComplete = false;
+            float attackElapsed = 0f;
 
             if (_qteWidget != null)
             {
@@ -583,11 +584,15 @@ namespace Expedition33.Combat
             else
             {
                 yield return new WaitForSeconds(0.50f);
+                attackElapsed = 0.50f;
                 qteComplete = true;
             }
 
-            while (!qteComplete)
+            while (!qteComplete || attackElapsed < 0.78f)
+            {
+                attackElapsed += Time.deltaTime;
                 yield return null;
+            }
 
             float multiplier = 1f;
             bool isCrit = false;
@@ -641,10 +646,11 @@ namespace Expedition33.Combat
             while (!arrived)
                 yield return null;
 
-            _playerView.PlayAttack();
+            _playerView.PlayAttack(speed: 1.25f);
 
             QTEOutcome qteResult = QTEOutcome.None;
             bool qteComplete = false;
+            float attackElapsed = 0f;
 
             if (_qteWidget != null)
             {
@@ -657,11 +663,15 @@ namespace Expedition33.Combat
             else
             {
                 yield return new WaitForSeconds(0.6f);
+                attackElapsed = 0.6f;
                 qteComplete = true;
             }
 
-            while (!qteComplete)
+            while (!qteComplete || attackElapsed < 0.84f)
+            {
+                attackElapsed += Time.deltaTime;
                 yield return null;
+            }
 
             float bonusMultiplier = 1f;
             bool isCrit = false;
@@ -880,7 +890,9 @@ namespace Expedition33.Combat
             while (!arrived) yield return null;
 
             // 3. Multi-hit cinematic sequence
-            _playerView.PlayAttack();
+            _playerView.PlayAttack(speed: 1.8f, fixedTimeOffset: 0.25f);
+            yield return new WaitForSeconds(0.42f);
+
             _audioPlayer?.PlayHit();
             _gameFeel?.TriggerHitStop(false);
             _gameFeel?.TriggerCameraShake(1.5f);
@@ -888,10 +900,12 @@ namespace Expedition33.Combat
             _enemyView.FlashColor(Color.yellow, 0.2f);
             FloatingCombatText.Spawn(_enemyView.transform.position + Vector3.up * 1.2f, "LUMIERE...", Color.yellow, 0.8f);
 
-            yield return new WaitForSeconds(0.35f);
+            yield return new WaitForSeconds(0.12f);
 
             // Finisher explosion
-            _playerView.PlayAttack();
+            _playerView.PlayAttack(speed: 1.5f, fixedTimeOffset: 0.20f);
+            yield return new WaitForSeconds(0.52f);
+
             _audioPlayer?.PlayWeakPointHit();
             _audioPlayer?.PlayBreakShatter();
 
@@ -972,9 +986,21 @@ namespace Expedition33.Combat
                 if (_playerStats.IsDefeated)
                     break;
 
-                float totalStrikeDuration = strike.HitTimeOffset + 0.35f;
-                float hitNormalized = strike.HitTimeOffset / totalStrikeDuration;
-                float parryHalfNormalized = strike.ParryHalfWindow / totalStrikeDuration;
+                float hitTime = Mathf.Max(0.15f, strike.HitTimeOffset);
+
+                float stanceParryWindowMult = _playerStanceController != null ? _playerStanceController.GetParryWindowMultiplier() : 1.0f;
+                float cheatParryMult = _cheatPanel != null ? _cheatPanel.GetDebugParryWindowMultiplier() : 1.0f;
+                float pictoParryExt = _playerLoadout != null ? _playerLoadout.GetParryWindowExtension() : 0f;
+                float parryWindowMult = stanceParryWindowMult * cheatParryMult * (1.0f + pictoParryExt);
+
+                float primaryHalfWindow = strike.TelegraphType == AttackTelegraphType.GroundSweep
+                    ? strike.JumpHalfWindow
+                    : strike.ParryHalfWindow * parryWindowMult;
+                float maxHalfWindow = Mathf.Max(primaryHalfWindow, Mathf.Max(strike.DodgeHalfWindow, strike.JumpHalfWindow));
+
+                float totalStrikeDuration = hitTime + maxHalfWindow + 0.15f;
+                float hitNormalized = hitTime / totalStrikeDuration;
+                float parryHalfNormalized = primaryHalfWindow / totalStrikeDuration;
                 float dodgeHalfNormalized = strike.DodgeHalfWindow / totalStrikeDuration;
 
                 if (_timingVisualizer != null)
@@ -988,7 +1014,8 @@ namespace Expedition33.Combat
                     );
                 }
 
-                _enemyView.PlayAttack();
+                // Sync Surprise Uppercut's natural ~1.08s swing peak to hitTime
+                _enemyView.PlayAttack(speed: 1.08f / hitTime, fixedTimeOffset: 0f);
                 _audioPlayer?.PlayTelegraphWindup();
 
                 if (_inputBuffer != null)
@@ -998,10 +1025,12 @@ namespace Expedition33.Combat
                 }
 
                 float elapsed = 0f;
+                float listenEnd = hitTime + maxHalfWindow;
                 DefenseActionType capturedAction = DefenseActionType.None;
                 float capturedTimestamp = -1f;
+                bool defenseAnimPlayed = false;
 
-                while (elapsed < strike.HitTimeOffset)
+                while (elapsed < listenEnd)
                 {
                     elapsed += Time.deltaTime;
                     float progress = Mathf.Clamp01(elapsed / totalStrikeDuration);
@@ -1013,11 +1042,28 @@ namespace Expedition33.Combat
 
                     if (_inputBuffer != null && capturedAction == DefenseActionType.None)
                     {
-                        if (_inputBuffer.TryConsumeInput(elapsed, out DefenseActionType action, out float ts))
+                        if (_inputBuffer.TryConsumeInput(Time.unscaledTime, out DefenseActionType action, out float inputTs))
                         {
+                            float inputAge = Mathf.Max(0f, Time.unscaledTime - inputTs);
                             capturedAction = action;
-                            capturedTimestamp = elapsed;
+                            capturedTimestamp = Mathf.Max(0f, elapsed - inputAge);
+
+                            if (action == DefenseActionType.Dodge && strike.TelegraphType != AttackTelegraphType.GroundSweep)
+                            {
+                                _playerView.PlayDodge();
+                                defenseAnimPlayed = true;
+                            }
+                            else if (action == DefenseActionType.Jump && strike.TelegraphType == AttackTelegraphType.GroundSweep)
+                            {
+                                _playerView.PlayJump(0.35f);
+                                defenseAnimPlayed = true;
+                            }
                         }
+                    }
+
+                    if (capturedAction != DefenseActionType.None && elapsed >= hitTime)
+                    {
+                        break;
                     }
 
                     yield return null;
@@ -1028,15 +1074,10 @@ namespace Expedition33.Combat
                     _inputBuffer.SetListening(false);
                 }
 
-                float stanceParryWindowMult = _playerStanceController != null ? _playerStanceController.GetParryWindowMultiplier() : 1.0f;
-                float cheatParryMult = _cheatPanel != null ? _cheatPanel.GetDebugParryWindowMultiplier() : 1.0f;
-                float pictoParryExt = _playerLoadout != null ? _playerLoadout.GetParryWindowExtension() : 0f;
-                float parryWindowMult = stanceParryWindowMult * cheatParryMult * (1.0f + pictoParryExt);
-
                 DefenseOutcome outcome = ActiveDefenseEvaluator.Evaluate(
                     capturedAction,
                     capturedTimestamp,
-                    strike.HitTimeOffset,
+                    hitTime,
                     strike,
                     parryWindowMult
                 );
@@ -1046,7 +1087,7 @@ namespace Expedition33.Combat
                     _timingVisualizer.ShowResult(outcome);
                 }
 
-                yield return ResolveDefenseOutcome(outcome, strike);
+                yield return ResolveDefenseOutcome(outcome, strike, defenseAnimPlayed);
                 yield return new WaitForSeconds(0.4f);
             }
 
@@ -1066,7 +1107,7 @@ namespace Expedition33.Combat
                 yield return null;
         }
 
-        private IEnumerator ResolveDefenseOutcome(DefenseOutcome outcome, HitWindowDefinition strike)
+        private IEnumerator ResolveDefenseOutcome(DefenseOutcome outcome, HitWindowDefinition strike, bool defenseAnimPlayed)
         {
             int gradDefBonus = _playerLoadout != null ? _playerLoadout.GetGradientOnDefenseBonus() : 0;
 
@@ -1104,7 +1145,10 @@ namespace Expedition33.Combat
                     _apPool.Generate(1);
                     _gradientMeter?.AddCharge(15 + gradDefBonus);
                     _audioPlayer?.PlayAPGain();
-                    _playerView.PlayDodge();
+                    if (!defenseAnimPlayed)
+                    {
+                        _playerView.PlayDodge();
+                    }
                     _audioPlayer?.PlayDodgeSuccess();
                     FloatingCombatText.Spawn(
                         _playerView.transform.position,
@@ -1112,14 +1156,17 @@ namespace Expedition33.Combat
                         new Color(1f, 0.9f, 0.2f),
                         1.2f
                     );
-                    yield return new WaitForSeconds(0.5f);
+                    yield return new WaitForSeconds(0.45f);
                     break;
 
                 case DefenseOutcome.JumpSuccess:
                     _apPool.Generate(1);
                     _gradientMeter?.AddCharge(15 + gradDefBonus);
                     _audioPlayer?.PlayAPGain();
-                    _playerView.PlayJump();
+                    if (!defenseAnimPlayed)
+                    {
+                        _playerView.PlayJump(0.35f);
+                    }
                     _audioPlayer?.PlayJumpSuccess();
                     FloatingCombatText.Spawn(
                         _playerView.transform.position,
@@ -1127,7 +1174,7 @@ namespace Expedition33.Combat
                         new Color(0.3f, 0.8f, 1f),
                         1.2f
                     );
-                    yield return new WaitForSeconds(0.6f);
+                    yield return new WaitForSeconds(0.55f);
                     break;
 
                 default:

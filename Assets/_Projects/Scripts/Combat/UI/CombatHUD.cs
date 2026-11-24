@@ -95,6 +95,11 @@ namespace Expedition33.Combat
                 _skillBackBtn.onClick.AddListener(() => ShowSkillMenu(false));
             }
 
+            if (_turnTimelineUI == null)
+            {
+                _turnTimelineUI = GetComponentInChildren<TurnTimelineUI>(true);
+            }
+
             CacheApPips();
             SetCommandMenuVisible(false);
             ShowSkillMenu(false);

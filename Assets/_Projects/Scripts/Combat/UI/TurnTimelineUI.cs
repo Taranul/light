@@ -26,8 +26,8 @@ namespace Expedition33.Combat
         [SerializeField] private float _iconSize = 54f;
         [SerializeField] private float _slotSpacing = 68f;
         [SerializeField] private float _topPadding = 34f;
-        [SerializeField] private float _activeShiftX = 28f;
-        [SerializeField] private float _activeScale = 1.18f;
+        [SerializeField] private float _activeShiftX = 34f;
+        [SerializeField] private float _activeScale = 1.2f;
 
         [Header("Colors")]
         [SerializeField] private Color _playerIconColor = new Color(0.20f, 0.68f, 1.00f, 1f);

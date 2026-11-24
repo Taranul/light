@@ -33,7 +33,7 @@ namespace Expedition33.Combat
 
         private void Awake()
         {
-            if (_container != null)
+            if (!_isActive && _container != null)
                 _container.SetActive(false);
 
             if (_retryButton != null)

@@ -31,6 +31,10 @@ namespace Expedition33.Combat
         private float _elapsed;
         private bool _inputCaptured;
         private float _inputTimestamp;
+        private Coroutine _qteRoutine;
+        private Vector3 _worldTargetPos;
+        private Color _defaultShrinkingRingColor = Color.white;
+        private bool _cachedRingColor;
 
         private void Awake()
         {
@@ -48,11 +52,24 @@ namespace Expedition33.Combat
 
         public void StartQTE(QTEWindowDefinition config, Vector3 worldTargetPos, Action<QTEOutcome> onComplete)
         {
+            StopQTERoutine();
+
             _isActive = true;
             _currentConfig = config ?? new QTEWindowDefinition();
             _elapsed = 0f;
             _inputCaptured = false;
             _inputTimestamp = -1f;
+            _worldTargetPos = worldTargetPos;
+
+            if (_shrinkingRingImage != null)
+            {
+                if (!_cachedRingColor)
+                {
+                    _defaultShrinkingRingColor = _shrinkingRingImage.color;
+                    _cachedRingColor = true;
+                }
+                _shrinkingRingImage.color = _defaultShrinkingRingColor;
+            }
 
             if (_container != null)
                 _container.SetActive(true);
@@ -69,15 +86,9 @@ namespace Expedition33.Combat
             if (_shrinkingRingRect != null)
                 _shrinkingRingRect.sizeDelta = new Vector2(_startDiameter, _startDiameter);
 
-            // Position over target in screen coordinates if camera exists
-            Camera cam = Camera.main;
-            if (cam != null && transform is RectTransform rt)
-            {
-                Vector3 screenPos = cam.WorldToScreenPoint(worldTargetPos + Vector3.up * 1.2f);
-                rt.position = screenPos;
-            }
+            UpdateScreenPosition();
 
-            StartCoroutine(QTERoutine(onComplete));
+            _qteRoutine = StartCoroutine(QTERoutine(onComplete));
         }
 
         private void Update()
@@ -99,22 +110,35 @@ namespace Expedition33.Combat
         private IEnumerator QTERoutine(Action<QTEOutcome> onComplete)
         {
             _isActive = true;
+            float sweetSpot = Mathf.Max(0.05f, _currentConfig.SweetSpotTime);
 
             while (_elapsed < _currentConfig.Duration)
             {
-                _elapsed += Time.deltaTime;
-                float progress = Mathf.Clamp01(_elapsed / _currentConfig.SweetSpotTime);
+                if (_inputCaptured)
+                {
+                    break;
+                }
 
-                // Interpolate shrinking ring towards target ring
-                float currentSize = Mathf.Lerp(_startDiameter, _targetDiameter, progress);
+                _elapsed += Time.deltaTime;
+                UpdateScreenPosition();
+
+                // Shrink continuously past the target ring after SweetSpotTime instead of freezing on it.
+                float progress = _elapsed / sweetSpot;
+                float currentSize = Mathf.Max(8f, Mathf.LerpUnclamped(_startDiameter, _targetDiameter, progress));
                 if (_shrinkingRingRect != null)
                 {
                     _shrinkingRingRect.sizeDelta = new Vector2(currentSize, currentSize);
                 }
 
-                if (_inputCaptured)
+                if (_shrinkingRingImage != null)
                 {
-                    break;
+                    float diff = Mathf.Abs(_elapsed - sweetSpot);
+                    if (diff <= _currentConfig.PerfectHalfWindow)
+                        _shrinkingRingImage.color = new Color(1f, 0.9f, 0.2f, 1f);
+                    else if (diff <= _currentConfig.GoodHalfWindow)
+                        _shrinkingRingImage.color = new Color(0.4f, 1f, 0.55f, 1f);
+                    else
+                        _shrinkingRingImage.color = _defaultShrinkingRingColor;
                 }
 
                 yield return null;
@@ -125,7 +149,8 @@ namespace Expedition33.Combat
             QTEOutcome outcome = QTEEvaluator.Evaluate(_inputTimestamp, _currentConfig);
             ShowResult(outcome);
 
-            yield return new WaitForSeconds(0.4f);
+            yield return new WaitForSeconds(0.30f);
+            _qteRoutine = null;
             Hide();
 
             onComplete?.Invoke(outcome);
@@ -152,9 +177,29 @@ namespace Expedition33.Combat
 
         public void Hide()
         {
+            StopQTERoutine();
             _isActive = false;
             if (_container != null)
                 _container.SetActive(false);
+        }
+
+        private void StopQTERoutine()
+        {
+            if (_qteRoutine != null)
+            {
+                StopCoroutine(_qteRoutine);
+                _qteRoutine = null;
+            }
+        }
+
+        private void UpdateScreenPosition()
+        {
+            Camera cam = Camera.main;
+            if (cam != null && transform is RectTransform rt)
+            {
+                Vector3 screenPos = cam.WorldToScreenPoint(_worldTargetPos + Vector3.up * 1.2f);
+                rt.position = screenPos;
+            }
         }
     }
 }

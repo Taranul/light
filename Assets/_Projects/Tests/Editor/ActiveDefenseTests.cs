@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using UnityEngine;
 using Expedition33.Combat;
 
 namespace Expedition33.Tests
@@ -123,6 +124,67 @@ namespace Expedition33.Tests
             );
 
             Assert.AreEqual(DefenseOutcome.InvalidAction, outcome);
+        }
+
+        [Test]
+        public void ActiveDefense_LateDodgeInsidePostHitWindow_ReturnsDodgeSuccess()
+        {
+            DefenseOutcome outcome = ActiveDefenseEvaluator.Evaluate(
+                DefenseActionType.Dodge,
+                inputTime: 1.12f,
+                strikeTime: 1.0f,
+                window: _standardWindow
+            );
+
+            Assert.AreEqual(DefenseOutcome.DodgeSuccess, outcome);
+        }
+
+        [Test]
+        public void InputBuffer_RejectsInputOutsideBufferWindow_AndConsumesWithinWindow()
+        {
+            var go = new GameObject("TestInputBuffer");
+            try
+            {
+                var buffer = go.AddComponent<InputBuffer>();
+                buffer.BufferAction(DefenseActionType.Dodge, 10.0f);
+
+                // Outside default 0.12s buffer window (e.g. 0.50s delta)
+                Assert.IsFalse(buffer.TryConsumeInput(10.50f, out _, out _));
+
+                // Within 0.12s buffer window
+                Assert.IsTrue(buffer.TryConsumeInput(10.08f, out DefenseActionType action, out float ts));
+                Assert.AreEqual(DefenseActionType.Dodge, action);
+                Assert.AreEqual(10.0f, ts, 0.0001f);
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+            }
+        }
+
+        [Test]
+        public void CombatActorView_AnimateApproach_MaintainsSafeSeparationFromTarget()
+        {
+            var go = new GameObject("TestActor");
+            try
+            {
+                go.transform.position = new Vector3(-2.2f, 0f, 0f);
+                go.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
+                var view = go.AddComponent<CombatActorView>();
+
+                Vector3 enemyPos = new Vector3(2.2f, 0f, 0f);
+                bool arrived = false;
+                view.AnimateApproach(enemyPos, 0f, () => arrived = true);
+
+                Assert.IsTrue(arrived);
+                float dist = Vector3.Distance(go.transform.position, enemyPos);
+                Assert.GreaterOrEqual(dist, 1.60f);
+                Assert.Less(go.transform.position.x, enemyPos.x);
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+            }
         }
     }
 }

@@ -27,6 +27,7 @@ namespace Expedition33.Combat
         [SerializeField] private TMP_Text _resultText;
 
         private bool _isActive;
+        private Coroutine _fadeRoutine;
 
         private void Awake()
         {
@@ -49,6 +50,7 @@ namespace Expedition33.Combat
             float parryNormalizedHalfWidth,
             float dodgeNormalizedHalfWidth)
         {
+            StopFadeRoutine();
             _isActive = true;
             if (_container != null)
                 _container.SetActive(true);
@@ -95,13 +97,25 @@ namespace Expedition33.Combat
                     break;
             }
 
-            StartCoroutine(FadeResultRoutine());
+            StopFadeRoutine();
+            _fadeRoutine = StartCoroutine(FadeResultRoutine());
         }
 
         public void Hide()
         {
+            StopFadeRoutine();
+            _isActive = false;
             if (_container != null)
                 _container.SetActive(false);
+        }
+
+        private void StopFadeRoutine()
+        {
+            if (_fadeRoutine != null)
+            {
+                StopCoroutine(_fadeRoutine);
+                _fadeRoutine = null;
+            }
         }
 
         private void ConfigurePrompts(string attackName, AttackTelegraphType type)

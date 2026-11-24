@@ -2050,8 +2050,8 @@ MonoBehaviour:
   _iconSize: 54
   _slotSpacing: 68
   _topPadding: 34
-  _activeShiftX: 28
-  _activeScale: 1.18
+  _activeShiftX: 34
+  _activeScale: 1.2
   _playerIconColor: {r: 0.2, g: 0.68, b: 1, a: 1}
   _enemyIconColor: {r: 0.95, g: 0.25, b: 0.34, a: 1}
   _playerHighlightColor: {r: 0.45, g: 0.9, b: 1, a: 1}
@@ -5373,7 +5373,7 @@ MonoBehaviour:
   _enemyBreakFill: {fileID: 632228113}
   _enemyBreakText: {fileID: 228483583}
   _enemyStatusText: {fileID: 186253742}
-  _turnTimelineUI: {fileID: 0}
+  _turnTimelineUI: {fileID: 297422503}
   _commandMenuRoot: {fileID: 1333758934}
   _attackButton: {fileID: 1264351411}
   _skillsButton: {fileID: 1618254521}
