@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace Expedition33.Combat
@@ -72,7 +73,7 @@ namespace Expedition33.Combat
 
         private void Update()
         {
-            if (Input.GetKeyDown(KeyCode.F12))
+            if (Keyboard.current != null && Keyboard.current.f12Key.wasPressedThisFrame)
                 SetVisible(!_isVisible);
         }
 

@@ -30,7 +30,9 @@ namespace Expedition33.Combat
         private Camera _aimCamera;
 
         public bool IsActive => _isActive;
-        public Vector2 CrosshairScreenPosition => _crosshairRect != null ? _crosshairRect.position : (Vector2)Input.mousePosition;
+        public Vector2 CrosshairScreenPosition => _crosshairRect != null
+            ? (Vector2)_crosshairRect.position
+            : (Mouse.current != null ? Mouse.current.position.ReadValue() : Vector2.zero);
 
         private void Awake()
         {

@@ -60,6 +60,7 @@ namespace Expedition33.Combat
         private Tweener _fovTween;
         private Tweener _punchTween;
         private Tweener _driftWeightTween;
+        private Action _pendingOnComplete;
 
         public Camera TargetCamera => _targetCamera;
 
@@ -158,14 +159,31 @@ namespace Expedition33.Combat
             bool triggerTurnPunch,
             Action onComplete)
         {
-            KillMovementTweens();
+            KillMovementTweens(invokePendingCallback: true);
+
+            if (!isActiveAndEnabled || duration <= 0f)
+            {
+                _basePosition = targetPos;
+                _baseRotation = targetRot;
+                _baseFov = targetFov;
+                _driftWeight = driftWeight;
+                onComplete?.Invoke();
+                return;
+            }
+
+            _pendingOnComplete = onComplete;
 
             Quaternion startRot = _baseRotation;
             _positionTween = DOTween.To(() => _basePosition, p => _basePosition = p, targetPos, duration).SetEase(ease);
             _rotationTween = DOTween.To(() => 0f, t => _baseRotation = Quaternion.Slerp(startRot, targetRot, t), 1f, duration).SetEase(ease);
             _fovTween = DOTween.To(() => _baseFov, f => _baseFov = f, targetFov, duration)
                 .SetEase(ease)
-                .OnComplete(() => onComplete?.Invoke());
+                .OnComplete(() =>
+                {
+                    Action cb = _pendingOnComplete;
+                    _pendingOnComplete = null;
+                    cb?.Invoke();
+                });
 
             _driftWeightTween = DOTween.To(() => _driftWeight, w => _driftWeight = w, driftWeight, duration * 0.6f)
                 .SetEase(Ease.OutQuad);
@@ -179,17 +197,24 @@ namespace Expedition33.Combat
             }
         }
 
-        private void KillMovementTweens()
+        private void KillMovementTweens(bool invokePendingCallback = false)
         {
             _positionTween?.Kill();
             _rotationTween?.Kill();
             _fovTween?.Kill();
             _driftWeightTween?.Kill();
+
+            Action pending = _pendingOnComplete;
+            _pendingOnComplete = null;
+            if (invokePendingCallback)
+            {
+                pending?.Invoke();
+            }
         }
 
         private void OnDestroy()
         {
-            KillMovementTweens();
+            KillMovementTweens(invokePendingCallback: false);
             _punchTween?.Kill();
         }
     }

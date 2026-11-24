@@ -283,8 +283,18 @@ namespace Expedition33.Combat
             _enemyAttackPatterns = new[] { p1, p2 };
         }
 
+        private bool CanSelectPlayerAction()
+        {
+            return _stateMachine != null
+                && _stateMachine.CurrentState == BattleState.PlayerTurn
+                && !_playerActionChosen;
+        }
+
         private void HandlePlayerAttackSelected()
         {
+            if (!CanSelectPlayerAction())
+                return;
+
             _audioPlayer?.PlayButtonClick();
             _selectedAction = CombatActionType.Attack;
             _selectedSkill = null;
@@ -293,6 +303,9 @@ namespace Expedition33.Combat
 
         private void HandlePlayerSkillSelected(SkillDefinitionSO skill)
         {
+            if (!CanSelectPlayerAction() || skill == null)
+                return;
+
             _audioPlayer?.PlayButtonClick();
             if (_apPool.CanSpend(skill.APCost))
             {
@@ -304,6 +317,9 @@ namespace Expedition33.Combat
 
         private void HandlePlayerFreeAimSelected()
         {
+            if (!CanSelectPlayerAction())
+                return;
+
             _audioPlayer?.PlayButtonClick();
             if (_apPool.CanSpend(1))
             {
@@ -315,6 +331,9 @@ namespace Expedition33.Combat
 
         private void HandlePlayerGradientSelected()
         {
+            if (!CanSelectPlayerAction())
+                return;
+
             _audioPlayer?.PlayButtonClick();
             if (_gradientMeter != null && _gradientMeter.IsReady)
             {
@@ -732,7 +751,7 @@ namespace Expedition33.Combat
 
             Action<Vector2> handleFire = screenPos =>
             {
-                if (!_apPool.CanSpend(1) || _enemyStats.IsDefeated)
+                if (!_apPool.CanSpend(1) || _enemyStats.IsDefeated || activeCam == null)
                     return;
 
                 _apPool.TrySpend(1);
@@ -786,7 +805,7 @@ namespace Expedition33.Combat
             {
                 timer -= Time.deltaTime;
 
-                if (_freeAimHUD != null)
+                if (_freeAimHUD != null && activeCam != null)
                 {
                     _freeAimHUD.UpdateTimer(timer, totalDuration);
 
@@ -801,6 +820,10 @@ namespace Expedition33.Combat
                     {
                         _freeAimHUD.SetTargetState(null);
                     }
+                }
+                else if (_freeAimHUD != null)
+                {
+                    _freeAimHUD.UpdateTimer(timer, totalDuration);
                 }
 
                 if (_apPool.CurrentAP <= 0)
@@ -871,12 +894,8 @@ namespace Expedition33.Combat
             _playerView.PlayAttack();
             _audioPlayer?.PlayWeakPointHit();
             _audioPlayer?.PlayBreakShatter();
-            _gameFeel?.TriggerHitStop(true);
-            _gameFeel?.TriggerCameraShake(3.0f);
-            _enemyView.PlayHitReact();
-            _enemyView.FlashColor(Color.white, 0.35f);
 
-            // Massive damage + break force
+            // Massive damage + break force (ApplyDamageAndBreakToEnemy handles hit react, flash, hitstop, and shake)
             float gradientDmgMult = 3.6f;
             int gradientBreak = 80;
             ApplyDamageAndBreakToEnemy(gradientDmgMult, gradientBreak, true, "Lumiere Eclipse", _enemyView.transform.position);

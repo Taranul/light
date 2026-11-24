@@ -12,7 +12,10 @@ namespace Expedition33.Combat
         private CombatActorStats _stats;
         private Vector3 _homePosition;
         private Quaternion _homeRotation;
+        private Color _baseTintColor = Color.white;
         private Tweener _moveTween;
+        private Action _pendingMoveCallback;
+        private Sequence _counterSequence;
 
         public CombatActorStats Stats => _stats;
         public Vector3 HomePosition => _homePosition;
@@ -97,22 +100,40 @@ namespace Expedition33.Combat
 
         public void AnimateApproach(Vector3 targetPosition, float duration, Action onArrival)
         {
-            _moveTween?.Kill();
+            CancelMovement(invokePendingCallback: true);
 
             Vector3 direction = (targetPosition - transform.position).normalized;
             Vector3 stopPoint = targetPosition - direction * 1.5f;
             stopPoint.y = _homePosition.y;
 
+            if (!isActiveAndEnabled || duration <= 0f)
+            {
+                transform.position = stopPoint;
+                onArrival?.Invoke();
+                return;
+            }
+
+            _pendingMoveCallback = onArrival;
             transform.DOLookAt(stopPoint, 0.15f, AxisConstraint.Y);
             _moveTween = transform.DOMove(stopPoint, duration)
                 .SetEase(Ease.OutQuad)
-                .OnComplete(() => onArrival?.Invoke());
+                .OnComplete(InvokePendingMoveCallback);
         }
 
         public void AnimateReturn(float duration, Action onArrival)
         {
-            _moveTween?.Kill();
+            CancelMovement(invokePendingCallback: true);
 
+            if (!isActiveAndEnabled || duration <= 0f)
+            {
+                transform.position = _homePosition;
+                transform.rotation = _homeRotation;
+                PlayIdle();
+                onArrival?.Invoke();
+                return;
+            }
+
+            _pendingMoveCallback = onArrival;
             transform.DOLookAt(_homePosition, 0.15f, AxisConstraint.Y);
             _moveTween = transform.DOMove(_homePosition, duration)
                 .SetEase(Ease.InOutQuad)
@@ -120,29 +141,42 @@ namespace Expedition33.Combat
                 {
                     transform.rotation = _homeRotation;
                     PlayIdle();
-                    onArrival?.Invoke();
+                    InvokePendingMoveCallback();
                 });
         }
 
         public void PlayCounterAttack(Vector3 targetPosition, Action onHit, Action onComplete)
         {
-            _moveTween?.Kill();
+            CancelMovement(invokePendingCallback: true);
 
             Vector3 direction = (targetPosition - transform.position).normalized;
             Vector3 strikePos = targetPosition - direction * 1.4f;
             strikePos.y = _homePosition.y;
 
+            if (!isActiveAndEnabled)
+            {
+                onHit?.Invoke();
+                onComplete?.Invoke();
+                return;
+            }
+
+            _pendingMoveCallback = onComplete;
             transform.DOLookAt(targetPosition, 0.08f, AxisConstraint.Y);
             _moveTween = transform.DOMove(strikePos, 0.16f)
                 .SetEase(Ease.OutBack)
                 .OnComplete(() =>
                 {
                     PlayAttack();
-                    DOVirtual.DelayedCall(0.35f, () => onHit?.Invoke());
-                    DOVirtual.DelayedCall(0.7f, () =>
-                    {
-                        AnimateReturn(0.3f, onComplete);
-                    });
+                    _counterSequence = DOTween.Sequence()
+                        .AppendInterval(0.35f)
+                        .AppendCallback(() => onHit?.Invoke())
+                        .AppendInterval(0.35f)
+                        .AppendCallback(() =>
+                        {
+                            Action pending = _pendingMoveCallback;
+                            _pendingMoveCallback = null;
+                            AnimateReturn(0.3f, pending);
+                        });
                 });
         }
 
@@ -155,10 +189,13 @@ namespace Expedition33.Combat
             {
                 if (r != null && r.material != null)
                 {
-                    Color orig = r.material.color;
+                    r.material.DOKill();
                     r.material.DOColor(color, duration * 0.5f).OnComplete(() =>
                     {
-                        r.material.DOColor(orig, duration * 0.5f);
+                        if (r != null && r.material != null)
+                        {
+                            r.material.DOColor(_baseTintColor, duration * 0.5f);
+                        }
                     });
                 }
             }
@@ -166,6 +203,7 @@ namespace Expedition33.Combat
 
         private void ApplyTint(Color tint)
         {
+            _baseTintColor = tint;
             if (_renderers == null)
                 return;
 
@@ -178,9 +216,44 @@ namespace Expedition33.Combat
             }
         }
 
-        private void OnDestroy()
+        private void InvokePendingMoveCallback()
+        {
+            Action cb = _pendingMoveCallback;
+            _pendingMoveCallback = null;
+            cb?.Invoke();
+        }
+
+        private void CancelMovement(bool invokePendingCallback)
         {
             _moveTween?.Kill();
+            _moveTween = null;
+            _counterSequence?.Kill();
+            _counterSequence = null;
+
+            if (invokePendingCallback)
+            {
+                InvokePendingMoveCallback();
+            }
+            else
+            {
+                _pendingMoveCallback = null;
+            }
+        }
+
+        private void OnDestroy()
+        {
+            CancelMovement(invokePendingCallback: false);
+
+            if (_renderers != null)
+            {
+                foreach (Renderer r in _renderers)
+                {
+                    if (r != null && r.material != null)
+                    {
+                        r.material.DOKill();
+                    }
+                }
+            }
         }
     }
 }

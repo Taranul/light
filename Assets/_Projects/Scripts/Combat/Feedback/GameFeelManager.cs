@@ -18,6 +18,9 @@ namespace Expedition33.Combat
         private Vector3 _currentShakeOffset;
         private Coroutine _activeShakeRoutine;
         private Coroutine _activeHitStopRoutine;
+        private bool _isHitStopActive;
+        private float _savedTimeScale = 1f;
+        private float _hitStopEndTime;
 
         private void Awake()
         {
@@ -32,19 +35,49 @@ namespace Expedition33.Combat
             }
         }
 
-        public void TriggerHitStop(bool isCritical = false)
+        private void OnDisable()
         {
-            float duration = isCritical ? _criticalHitStopDuration : _defaultHitStopDuration;
             if (_activeHitStopRoutine != null)
             {
                 StopCoroutine(_activeHitStopRoutine);
             }
-            _activeHitStopRoutine = StartCoroutine(HitStopRoutine(duration));
+            RestoreTimeScale();
+
+            if (_activeShakeRoutine != null)
+            {
+                StopCoroutine(_activeShakeRoutine);
+                _activeShakeRoutine = null;
+                ApplyShakeOffset(Vector3.zero);
+            }
+        }
+
+        public void TriggerHitStop(bool isCritical = false)
+        {
+            if (!isActiveAndEnabled)
+                return;
+
+            float duration = isCritical ? _criticalHitStopDuration : _defaultHitStopDuration;
+            if (duration <= 0f)
+                return;
+
+            float targetEndTime = Time.unscaledTime + duration;
+
+            if (_isHitStopActive)
+            {
+                // Keep the original pre-hitstop timeScale and simply extend the freeze window.
+                _hitStopEndTime = Mathf.Max(_hitStopEndTime, targetEndTime);
+                return;
+            }
+
+            _savedTimeScale = Time.timeScale > 0f ? Time.timeScale : 1f;
+            _hitStopEndTime = targetEndTime;
+            _isHitStopActive = true;
+            _activeHitStopRoutine = StartCoroutine(HitStopRoutine());
         }
 
         public void TriggerCameraShake(float multiplier = 1f)
         {
-            if (_cameraTransform == null && _cameraController == null)
+            if (!isActiveAndEnabled || (_cameraTransform == null && _cameraController == null))
                 return;
 
             if (_activeShakeRoutine != null)
@@ -56,12 +89,25 @@ namespace Expedition33.Combat
             _activeShakeRoutine = StartCoroutine(CameraShakeRoutine(_shakeDuration, _shakeMagnitude * multiplier));
         }
 
-        private IEnumerator HitStopRoutine(float duration)
+        private IEnumerator HitStopRoutine()
         {
-            float originalTimeScale = Time.timeScale;
             Time.timeScale = 0f;
-            yield return new WaitForSecondsRealtime(duration);
-            Time.timeScale = originalTimeScale;
+
+            while (Time.unscaledTime < _hitStopEndTime)
+            {
+                yield return null;
+            }
+
+            RestoreTimeScale();
+        }
+
+        private void RestoreTimeScale()
+        {
+            if (_isHitStopActive)
+            {
+                Time.timeScale = _savedTimeScale;
+                _isHitStopActive = false;
+            }
             _activeHitStopRoutine = null;
         }
 
