@@ -7256,21 +7256,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: Expedition33.Combat::Expedition33.Combat.CombatCameraController
   _targetCamera: {fileID: 1180989730}
   _defaultFov: 60
-  _playerTurnPosition: {x: -3.65, y: 1.85, z: -1.05}
-  _playerTurnLookAt: {x: 1.55, y: 1.25, z: 0.1}
-  _playerTurnFov: 54
-  _playerActionPosition: {x: -0.35, y: 1.95, z: -4.35}
-  _playerActionLookAt: {x: 0.9, y: 1.15, z: 0}
-  _playerActionFov: 52
+  _playerTurnPosition: {x: -3.55, y: 1.8, z: -0.95}
+  _playerTurnLookAt: {x: 1.6, y: 1.25, z: 0.1}
+  _playerTurnFov: 55
+  _playerActionPosition: {x: -1.65, y: 2.05, z: -1.25}
+  _playerActionLookAt: {x: 1.9, y: 1.2, z: 0}
+  _playerActionFov: 56
   _freeAimPosition: {x: -3.35, y: 1.72, z: -0.92}
   _freeAimLookAt: {x: 2.2, y: 1.32, z: 0}
   _freeAimFov: 42
-  _enemyTurnPosition: {x: 0.45, y: 1.55, z: -4.25}
-  _enemyTurnLookAt: {x: 0.2, y: 1.15, z: 0}
+  _enemyTurnPosition: {x: -4.55, y: 2.25, z: -1.35}
+  _enemyTurnLookAt: {x: 1.1, y: 1.15, z: 0}
   _enemyTurnFov: 50
-  _enemyAttackPosition: {x: -1.25, y: 1.45, z: -3.55}
-  _enemyAttackLookAt: {x: -1.1, y: 1.12, z: 0}
-  _enemyAttackFov: 48
+  _enemyAttackPosition: {x: -3.95, y: 1.7, z: -1.45}
+  _enemyAttackLookAt: {x: -0.6, y: 1.15, z: 0}
+  _enemyAttackFov: 46
   _idleDriftPositionAmplitude: {x: 0.035, y: 0.025}
   _idleDriftRotationAmplitude: 0.35
   _idleDriftSpeed: 0.85

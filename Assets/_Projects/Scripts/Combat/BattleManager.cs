@@ -617,6 +617,8 @@ namespace Expedition33.Combat
                 _enemyView.PlayIdle();
             }
 
+            _cameraController?.BlendToPlayerTurn(0.4f, null, triggerTurnPunch: false);
+
             bool returned = false;
             _playerView.AnimateReturn(0.4f, () => returned = true);
             while (!returned)
@@ -706,6 +708,8 @@ namespace Expedition33.Combat
             {
                 _enemyView.PlayIdle();
             }
+
+            _cameraController?.BlendToPlayerTurn(0.38f, null, triggerTurnPunch: false);
 
             bool returned = false;
             _playerView.AnimateReturn(0.38f, () => returned = true);
@@ -905,14 +909,17 @@ namespace Expedition33.Combat
                 _enemyView.PlayIdle();
             }
 
-            // 4. Return to home pos (camera blends smoothly in TurnEnd unless defeated)
+            // 4. Return to home pos while keeping camera behind player
             bool returned = false;
             _playerView.AnimateReturn(0.35f, () => returned = true);
 
-            bool camReturned = !_enemyStats.IsDefeated || _cameraController == null;
-            if (_enemyStats.IsDefeated && _cameraController != null)
+            bool camReturned = _cameraController == null;
+            if (_cameraController != null)
             {
-                _cameraController.BlendToDefault(0.35f, () => camReturned = true);
+                if (_enemyStats.IsDefeated)
+                    _cameraController.BlendToDefault(0.35f, () => camReturned = true);
+                else
+                    _cameraController.BlendToPlayerTurn(0.35f, () => camReturned = true, triggerTurnPunch: false);
             }
 
             while (!returned || !camReturned) yield return null;

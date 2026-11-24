@@ -16,29 +16,29 @@ namespace Expedition33.Combat
         [SerializeField] private float _defaultFov = 60f;
 
         [Header("Player Turn Perspective (Over-the-Shoulder Hero Angle)")]
-        [SerializeField] private Vector3 _playerTurnPosition = new Vector3(-3.65f, 1.85f, -1.05f);
-        [SerializeField] private Vector3 _playerTurnLookAt = new Vector3(1.55f, 1.25f, 0.10f);
-        [SerializeField] private float _playerTurnFov = 54f;
+        [SerializeField] private Vector3 _playerTurnPosition = new Vector3(-3.55f, 1.80f, -0.95f);
+        [SerializeField] private Vector3 _playerTurnLookAt = new Vector3(1.60f, 1.25f, 0.10f);
+        [SerializeField] private float _playerTurnFov = 55f;
 
-        [Header("Player Action Perspective (Melee Approach & QTE)")]
-        [SerializeField] private Vector3 _playerActionPosition = new Vector3(-0.35f, 1.95f, -4.35f);
-        [SerializeField] private Vector3 _playerActionLookAt = new Vector3(0.90f, 1.15f, 0.0f);
-        [SerializeField] private float _playerActionFov = 52f;
+        [Header("Player Action Perspective (Dynamic Behind-Player Follow)")]
+        [SerializeField] private Vector3 _playerActionPosition = new Vector3(-1.65f, 2.05f, -1.25f);
+        [SerializeField] private Vector3 _playerActionLookAt = new Vector3(1.90f, 1.20f, 0.0f);
+        [SerializeField] private float _playerActionFov = 56f;
 
         [Header("Free Aim Perspective (Tight Over-the-Shoulder)")]
         [SerializeField] private Vector3 _freeAimPosition = new Vector3(-3.35f, 1.72f, -0.92f);
         [SerializeField] private Vector3 _freeAimLookAt = new Vector3(2.20f, 1.32f, 0.0f);
         [SerializeField] private float _freeAimFov = 42f;
 
-        [Header("Enemy Turn Perspective (Defensive Ready Angle)")]
-        [SerializeField] private Vector3 _enemyTurnPosition = new Vector3(0.45f, 1.55f, -4.25f);
-        [SerializeField] private Vector3 _enemyTurnLookAt = new Vector3(0.20f, 1.15f, 0.0f);
+        [Header("Enemy Turn Perspective (Behind-Player Defensive Ready)")]
+        [SerializeField] private Vector3 _enemyTurnPosition = new Vector3(-4.55f, 2.25f, -1.35f);
+        [SerializeField] private Vector3 _enemyTurnLookAt = new Vector3(1.10f, 1.15f, 0.0f);
         [SerializeField] private float _enemyTurnFov = 50f;
 
-        [Header("Enemy Attack Perspective (Close Parry / Dodge Framing)")]
-        [SerializeField] private Vector3 _enemyAttackPosition = new Vector3(-1.25f, 1.45f, -3.55f);
-        [SerializeField] private Vector3 _enemyAttackLookAt = new Vector3(-1.10f, 1.12f, 0.0f);
-        [SerializeField] private float _enemyAttackFov = 48f;
+        [Header("Enemy Attack Perspective (Low Behind-Player Parry Framing)")]
+        [SerializeField] private Vector3 _enemyAttackPosition = new Vector3(-3.95f, 1.70f, -1.45f);
+        [SerializeField] private Vector3 _enemyAttackLookAt = new Vector3(-0.60f, 1.15f, 0.0f);
+        [SerializeField] private float _enemyAttackFov = 46f;
 
         [Header("Idle Breathing & Turn Punch")]
         [SerializeField] private Vector2 _idleDriftPositionAmplitude = new Vector2(0.035f, 0.025f);
@@ -113,10 +113,10 @@ namespace Expedition33.Combat
                 BlendToEnemyTurn(duration, onComplete);
         }
 
-        public void BlendToPlayerTurn(float duration = 0.38f, Action onComplete = null)
+        public void BlendToPlayerTurn(float duration = 0.38f, Action onComplete = null, bool triggerTurnPunch = true)
         {
             Quaternion targetRot = Quaternion.LookRotation(_playerTurnLookAt - _playerTurnPosition);
-            BlendToPose(_playerTurnPosition, targetRot, _playerTurnFov, duration, Ease.OutCubic, driftWeight: 1f, triggerTurnPunch: true, onComplete);
+            BlendToPose(_playerTurnPosition, targetRot, _playerTurnFov, duration, Ease.OutCubic, driftWeight: 1f, triggerTurnPunch: triggerTurnPunch, onComplete);
         }
 
         public void BlendToPlayerAction(float duration = 0.35f, Action onComplete = null)
