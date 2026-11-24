@@ -11,10 +11,11 @@ namespace Expedition33.Combat
 
         [Header("Camera Shake Settings")]
         [SerializeField] private Transform _cameraTransform;
+        [SerializeField] private CombatCameraController _cameraController;
         [SerializeField] private float _shakeDuration = 0.15f;
         [SerializeField] private float _shakeMagnitude = 0.12f;
 
-        private Vector3 _originalCameraLocalPos;
+        private Vector3 _currentShakeOffset;
         private Coroutine _activeShakeRoutine;
         private Coroutine _activeHitStopRoutine;
 
@@ -25,9 +26,9 @@ namespace Expedition33.Combat
                 _cameraTransform = Camera.main.transform;
             }
 
-            if (_cameraTransform != null)
+            if (_cameraController == null && _cameraTransform != null)
             {
-                _originalCameraLocalPos = _cameraTransform.localPosition;
+                _cameraController = _cameraTransform.GetComponent<CombatCameraController>();
             }
         }
 
@@ -43,13 +44,13 @@ namespace Expedition33.Combat
 
         public void TriggerCameraShake(float multiplier = 1f)
         {
-            if (_cameraTransform == null)
+            if (_cameraTransform == null && _cameraController == null)
                 return;
 
             if (_activeShakeRoutine != null)
             {
                 StopCoroutine(_activeShakeRoutine);
-                _cameraTransform.localPosition = _originalCameraLocalPos;
+                ApplyShakeOffset(Vector3.zero);
             }
 
             _activeShakeRoutine = StartCoroutine(CameraShakeRoutine(_shakeDuration, _shakeMagnitude * multiplier));
@@ -74,12 +75,28 @@ namespace Expedition33.Combat
                 float damp = 1f - (elapsed / duration);
                 Vector3 offset = Random.insideUnitSphere * magnitude * damp;
                 offset.z = 0f; // Maintain camera distance
-                _cameraTransform.localPosition = _originalCameraLocalPos + offset;
+                ApplyShakeOffset(offset);
                 yield return null;
             }
 
-            _cameraTransform.localPosition = _originalCameraLocalPos;
+            ApplyShakeOffset(Vector3.zero);
             _activeShakeRoutine = null;
+        }
+
+        private void ApplyShakeOffset(Vector3 newOffset)
+        {
+            if (_cameraController != null)
+            {
+                _currentShakeOffset = newOffset;
+                _cameraController.SetShakeOffset(newOffset);
+                return;
+            }
+
+            if (_cameraTransform != null)
+            {
+                _cameraTransform.localPosition += newOffset - _currentShakeOffset;
+                _currentShakeOffset = newOffset;
+            }
         }
     }
 }

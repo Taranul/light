@@ -28,7 +28,7 @@ namespace Expedition33.Combat
         [SerializeField] private TMP_Text _enemyStatusText;
 
         [Header("Turn Timeline")]
-        [SerializeField] private TMP_Text _timelineText;
+        [SerializeField] private TurnTimelineUI _turnTimelineUI;
 
         [Header("Action Command Menu")]
         [SerializeField] private GameObject _commandMenuRoot;
@@ -47,8 +47,7 @@ namespace Expedition33.Combat
         [SerializeField] private Image _gradientFill;
         [SerializeField] private TMP_Text _gradientText;
 
-        [Header("Banner & Feedback")]
-        [SerializeField] private TMP_Text _turnBannerText;
+        [Header("Feedback")]
         [SerializeField] private TMP_Text _battleLogText;
 
         public event Action OnAttackSelected;
@@ -102,7 +101,6 @@ namespace Expedition33.Combat
             CacheApPips();
             SetCommandMenuVisible(false);
             ShowSkillMenu(false);
-            SetTurnBanner(string.Empty);
         }
 
         private void CacheApPips()
@@ -205,17 +203,28 @@ namespace Expedition33.Combat
 
         public void UpdateTimelinePreview(List<CombatActorStats> upcoming)
         {
-            if (upcoming == null || _timelineText == null)
-                return;
-
-            var badges = new List<string>();
-            for (int i = 0; i < Mathf.Min(6, upcoming.Count); i++)
+            if (upcoming != null)
             {
-                string tag = upcoming[i].IsPlayer ? "<color=#4DC4FF><b>" + upcoming[i].Name + "</b></color>" : "<color=#FF5566><b>" + upcoming[i].Name + "</b></color>";
-                badges.Add(tag);
+                _turnTimelineUI?.SetTimeline(upcoming);
             }
+        }
 
-            _timelineText.text = string.Join("  <color=#888888>→</color>  ", badges);
+        public void ActivateCurrentTurn(float duration = 0.22f)
+        {
+            _turnTimelineUI?.ActivateCurrentTurn(duration);
+        }
+
+        public void ReturnActiveTurnIcon(float duration = 0.14f)
+        {
+            _turnTimelineUI?.ReturnActiveIconToColumn(duration);
+        }
+
+        public void TransitionTimelineToNextTurn(IReadOnlyList<CombatActorStats> nextUpcoming, float totalDuration = 0.36f)
+        {
+            if (nextUpcoming != null)
+            {
+                _turnTimelineUI?.TransitionToNextTurn(nextUpcoming, totalDuration);
+            }
         }
 
         public void SetCommandMenuVisible(bool visible)
@@ -306,14 +315,6 @@ namespace Expedition33.Combat
                     ShowSkillMenu(false);
                     OnSkillSelected?.Invoke(capturedSkill);
                 });
-            }
-        }
-
-        public void SetTurnBanner(string message)
-        {
-            if (_turnBannerText != null)
-            {
-                _turnBannerText.text = message;
             }
         }
 

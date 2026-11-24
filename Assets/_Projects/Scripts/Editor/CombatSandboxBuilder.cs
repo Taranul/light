@@ -98,42 +98,18 @@ namespace Expedition33.EditorTools
             canvasGo.AddComponent<GraphicRaycaster>();
             var hud = canvasGo.AddComponent<CombatHUD>();
 
-            // 4.1 Timeline Banner (Top Center)
+            // 4.1 Vertical Turn Timeline (Top Left, 4% from left, 15% from top)
             var timelinePanel = new GameObject("TimelinePanel");
             timelinePanel.transform.SetParent(canvasGo.transform, false);
             var tlRect = timelinePanel.AddComponent<RectTransform>();
-            tlRect.anchorMin = new Vector2(0.20f, 0.93f);
-            tlRect.anchorMax = new Vector2(0.80f, 0.985f);
+            tlRect.anchorMin = new Vector2(0.04f, 0.42f);
+            tlRect.anchorMax = new Vector2(0.09f, 0.85f);
             tlRect.offsetMin = Vector2.zero;
             tlRect.offsetMax = Vector2.zero;
             var tlBg = timelinePanel.AddComponent<Image>();
-            tlBg.color = new Color(0.06f, 0.08f, 0.12f, 0.88f);
-
-            var tlTextObj = new GameObject("TimelineText");
-            tlTextObj.transform.SetParent(timelinePanel.transform, false);
-            var tltRect = tlTextObj.AddComponent<RectTransform>();
-            tltRect.anchorMin = Vector2.zero;
-            tltRect.anchorMax = Vector2.one;
-            tltRect.offsetMin = new Vector2(10f, 0f);
-            tltRect.offsetMax = new Vector2(-10f, 0f);
-            var tlText = tlTextObj.AddComponent<TextMeshProUGUI>();
-            tlText.fontSize = 20;
-            tlText.alignment = TextAlignmentOptions.Center;
-            tlText.text = "TIMELINE";
-
-            // 4.2 Turn Banner (Center Upper)
-            var bannerObj = new GameObject("TurnBanner");
-            bannerObj.transform.SetParent(canvasGo.transform, false);
-            var bRect = bannerObj.AddComponent<RectTransform>();
-            bRect.anchorMin = new Vector2(0.25f, 0.84f);
-            bRect.anchorMax = new Vector2(0.75f, 0.91f);
-            bRect.offsetMin = Vector2.zero;
-            bRect.offsetMax = Vector2.zero;
-            var bText = bannerObj.AddComponent<TextMeshProUGUI>();
-            bText.fontSize = 34;
-            bText.fontStyle = FontStyles.Bold;
-            bText.alignment = TextAlignmentOptions.Center;
-            bText.text = "BATTLE START";
+            tlBg.color = new Color(0.06f, 0.08f, 0.12f, 0.55f);
+            tlBg.raycastTarget = false;
+            var turnTimelineUI = timelinePanel.AddComponent<TurnTimelineUI>();
 
             // Procedural solid white sprite for filled UI images
             var solidWhiteTex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
@@ -907,7 +883,7 @@ namespace Expedition33.EditorTools
             soHud.FindProperty("_enemyBreakFill").objectReferenceValue = eBreakFillImg;
             soHud.FindProperty("_enemyBreakText").objectReferenceValue = eBreakText;
             soHud.FindProperty("_enemyStatusText").objectReferenceValue = eStatusText;
-            soHud.FindProperty("_timelineText").objectReferenceValue = tlText;
+            soHud.FindProperty("_turnTimelineUI").objectReferenceValue = turnTimelineUI;
             soHud.FindProperty("_commandMenuRoot").objectReferenceValue = cmdMenu;
             soHud.FindProperty("_attackButton").objectReferenceValue = atkBtn;
             soHud.FindProperty("_skillsButton").objectReferenceValue = skBtn;
@@ -919,7 +895,6 @@ namespace Expedition33.EditorTools
             soHud.FindProperty("_skillBackBtn").objectReferenceValue = bkBtn;
             soHud.FindProperty("_gradientFill").objectReferenceValue = gradFillImg;
             soHud.FindProperty("_gradientText").objectReferenceValue = gradText;
-            soHud.FindProperty("_turnBannerText").objectReferenceValue = bText;
             soHud.FindProperty("_battleLogText").objectReferenceValue = logText;
             soHud.ApplyModifiedPropertiesWithoutUndo();
 

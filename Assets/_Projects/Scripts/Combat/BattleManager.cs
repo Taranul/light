@@ -419,15 +419,27 @@ namespace Expedition33.Combat
 
         private IEnumerator BattleRoutine()
         {
-            yield return new WaitForSeconds(0.6f);
+            yield return new WaitForSeconds(0.45f);
+
+            bool isFirstTurn = true;
 
             while (!_playerStats.IsDefeated && !_enemyStats.IsDefeated)
             {
-                RefreshTimelineHUD();
-                CombatActorStats activeActor = _timeline.GetNextTurnActor();
+                if (isFirstTurn)
+                {
+                    RefreshTimelineHUD();
+                }
 
+                CombatActorStats activeActor = _timeline.GetNextTurnActor();
                 if (activeActor == null)
                     break;
+
+                if (isFirstTurn)
+                {
+                    _hud?.ActivateCurrentTurn(0.24f);
+                    _cameraController?.BlendToTurn(activeActor.IsPlayer, 0.40f);
+                    isFirstTurn = false;
+                }
 
                 if (activeActor.IsPlayer)
                 {
@@ -439,7 +451,20 @@ namespace Expedition33.Combat
                 }
 
                 _stateMachine.ChangeState(BattleState.TurnEnd);
-                yield return new WaitForSeconds(0.4f);
+
+                if (_playerStats.IsDefeated || _enemyStats.IsDefeated)
+                {
+                    _hud?.ReturnActiveTurnIcon(0.16f);
+                    _cameraController?.BlendToDefault(0.45f, null);
+                    yield return new WaitForSeconds(0.20f);
+                    break;
+                }
+
+                List<CombatActorStats> nextUpcoming = _timeline.PreviewUpcomingTurns(6);
+                bool nextIsPlayer = nextUpcoming.Count > 0 && nextUpcoming[0].IsPlayer;
+                _hud?.TransitionTimelineToNextTurn(nextUpcoming, 0.36f);
+                _cameraController?.BlendToTurn(nextIsPlayer, 0.38f);
+                yield return new WaitForSeconds(0.38f);
             }
 
             // Battle resolution
@@ -448,7 +473,6 @@ namespace Expedition33.Combat
                 _stateMachine.ChangeState(BattleState.Victory);
                 _enemyView.PlayDeath();
                 _audioPlayer?.PlayVictory();
-                _hud?.SetTurnBanner("<color=#55FF88>VICTORY!</color>");
                 _hud?.AddLog("Enemy defeated in battle!");
                 yield return new WaitForSeconds(0.8f);
                 _resultScreen?.ShowVictory();
@@ -458,7 +482,6 @@ namespace Expedition33.Combat
                 _stateMachine.ChangeState(BattleState.Defeat);
                 _playerView.PlayDeath();
                 _audioPlayer?.PlayDefeat();
-                _hud?.SetTurnBanner("<color=#FF5555>DEFEAT</color>");
                 _hud?.AddLog("Party was defeated...");
                 yield return new WaitForSeconds(0.8f);
                 _resultScreen?.ShowDefeat();
@@ -468,7 +491,6 @@ namespace Expedition33.Combat
         private IEnumerator PlayerTurnRoutine()
         {
             _stateMachine.ChangeState(BattleState.PlayerTurn);
-            _hud?.SetTurnBanner("PLAYER TURN");
             _hud?.AddLog("Choose Attack, Skill, or Free Aim.");
             _audioPlayer?.PlayTurnStart();
 
@@ -528,6 +550,8 @@ namespace Expedition33.Combat
         {
             _apPool.Generate(1);
             _audioPlayer?.PlayAPGain();
+
+            _cameraController?.BlendToPlayerAction(0.35f);
 
             bool arrived = false;
             _playerView.AnimateApproach(_enemyView.HomePosition, 0.42f, () => arrived = true);
@@ -603,6 +627,8 @@ namespace Expedition33.Combat
         {
             _apPool.TrySpend(skill.APCost);
             _hud?.AddLog($"Gustave unleashes <color=#55AAFF>{skill.SkillName}</color> (-{skill.APCost} AP)!");
+
+            _cameraController?.BlendToPlayerAction(0.35f);
 
             bool arrived = false;
             _playerView.AnimateApproach(_enemyView.HomePosition, 0.38f, () => arrived = true);
@@ -689,7 +715,6 @@ namespace Expedition33.Combat
 
         private IEnumerator ExecutePlayerFreeAim()
         {
-            _hud?.SetTurnBanner(string.Empty);
             _hud?.AddLog("<color=#FFE040>FREE AIM ACTIVATED!</color> Aim for weak points.");
 
             // 1. Blend Camera to over-the-shoulder
@@ -811,20 +836,13 @@ namespace Expedition33.Combat
                 _freeAimHUD.Hide();
             }
 
-            bool camReturned = false;
-            if (_cameraController != null)
+            if (_enemyStats.IsDefeated && _cameraController != null)
             {
+                bool camReturned = false;
                 _cameraController.BlendToDefault(0.35f, () => camReturned = true);
+                while (!camReturned)
+                    yield return null;
             }
-            else
-            {
-                camReturned = true;
-            }
-
-            while (!camReturned)
-                yield return null;
-
-            yield return new WaitForSeconds(0.3f);
         }
 
         private IEnumerator ExecutePlayerGradientAttack()
@@ -832,7 +850,6 @@ namespace Expedition33.Combat
             if (_gradientMeter == null || !_gradientMeter.ConsumeForSuperAttack())
                 yield break;
 
-            _hud?.SetTurnBanner("<color=#FFA000><b>GRADIENT SUPER ATTACK</b></color>");
             _hud?.AddLog("<color=#FFA000><b>★ Gustave unleashes EXPEDITION ARTS: LUMIERE ECLIPSE! ★</b></color>");
             _audioPlayer?.PlayOverchargeSurge();
 
@@ -851,6 +868,7 @@ namespace Expedition33.Combat
             yield return new WaitForSeconds(0.2f);
 
             // 2. High-speed approach
+            _cameraController?.BlendToPlayerAction(0.28f);
             bool arrived = false;
             _playerView.AnimateApproach(_enemyView.HomePosition, 0.28f, () => arrived = true);
             while (!arrived) yield return null;
@@ -887,28 +905,22 @@ namespace Expedition33.Combat
                 _enemyView.PlayIdle();
             }
 
-            // 4. Return to camera and home pos
+            // 4. Return to home pos (camera blends smoothly in TurnEnd unless defeated)
             bool returned = false;
             _playerView.AnimateReturn(0.35f, () => returned = true);
 
-            bool camReturned = false;
-            if (_cameraController != null)
+            bool camReturned = !_enemyStats.IsDefeated || _cameraController == null;
+            if (_enemyStats.IsDefeated && _cameraController != null)
             {
                 _cameraController.BlendToDefault(0.35f, () => camReturned = true);
             }
-            else
-            {
-                camReturned = true;
-            }
 
             while (!returned || !camReturned) yield return null;
-            yield return new WaitForSeconds(0.3f);
         }
 
         private IEnumerator EnemyTurnRoutine()
         {
             _stateMachine.ChangeState(BattleState.EnemyTurn);
-            _hud?.SetTurnBanner("ENEMY TURN");
 
             // Process enemy turn start status effects (e.g. burn dot)
             _enemyStatusController.ProcessTurnStart(_enemyStats);
@@ -922,7 +934,6 @@ namespace Expedition33.Combat
             // Check if enemy is posture broken
             if (_enemyBreakMeter.IsBroken)
             {
-                _hud?.SetTurnBanner("<color=#FF8822>ENEMY STUNNED</color>");
                 _hud?.AddLog($"<color=#FF8822><b>{_enemyStats.Name} is BROKEN and skips turn! Posture recovering.</b></color>");
                 FloatingCombatText.Spawn(_enemyView.transform.position + Vector3.up * 1.5f, "TURN SKIPPED (BROKEN)", new Color(1f, 0.5f, 0.2f), 1.6f);
                 _audioPlayer?.PlayTelegraphWindup();
@@ -946,6 +957,8 @@ namespace Expedition33.Combat
 
         private IEnumerator ExecuteEnemyAttackPatternWithActiveDefense(EnemyAttackPatternSO pattern)
         {
+            _cameraController?.BlendToEnemyAttack(0.36f);
+
             bool arrived = false;
             _enemyView.AnimateApproach(_playerView.HomePosition, 0.42f, () => arrived = true);
             while (!arrived)

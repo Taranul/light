@@ -12,6 +12,7 @@ namespace Expedition33.Combat
         [SerializeField] private int _agility = 10;
         [SerializeField] private bool _isPlayer;
         [SerializeField] private Color _tintColor = Color.white;
+        [SerializeField] private Sprite _portraitIcon;
 
         public string ActorName => _actorName;
         public int MaxHealth => _maxHealth;
@@ -20,10 +21,11 @@ namespace Expedition33.Combat
         public int Agility => _agility;
         public bool IsPlayer => _isPlayer;
         public Color TintColor => _tintColor;
+        public Sprite PortraitIcon => _portraitIcon;
 
         public CombatActorStats CreateStats()
         {
-            return new CombatActorStats(_actorName, _maxHealth, _attackPower, _defense, _agility, _isPlayer);
+            return new CombatActorStats(_actorName, _maxHealth, _attackPower, _defense, _agility, _isPlayer, _portraitIcon);
         }
     }
 }

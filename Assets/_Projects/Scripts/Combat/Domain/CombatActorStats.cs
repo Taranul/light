@@ -13,6 +13,7 @@ namespace Expedition33.Combat
         [SerializeField] private int _defense = 5;
         [SerializeField] private int _agility = 10;
         [SerializeField] private bool _isPlayer;
+        [SerializeField] private Sprite _portraitIcon;
 
         public string Name => _name;
         public int MaxHealth => _maxHealth;
@@ -21,12 +22,13 @@ namespace Expedition33.Combat
         public int Defense => _defense;
         public int Agility => _agility;
         public bool IsPlayer => _isPlayer;
+        public Sprite PortraitIcon => _portraitIcon;
         public bool IsDefeated => _currentHealth <= 0;
 
         public event Action<int, int> OnHealthChanged;
         public event Action OnDefeated;
 
-        public CombatActorStats(string name, int maxHealth, int attackPower, int defense, int agility, bool isPlayer)
+        public CombatActorStats(string name, int maxHealth, int attackPower, int defense, int agility, bool isPlayer, Sprite portraitIcon = null)
         {
             _name = name;
             _maxHealth = Mathf.Max(1, maxHealth);
@@ -35,6 +37,7 @@ namespace Expedition33.Combat
             _defense = Mathf.Max(0, defense);
             _agility = Mathf.Max(1, agility);
             _isPlayer = isPlayer;
+            _portraitIcon = portraitIcon;
         }
 
         public void ApplyDamage(int amount)
