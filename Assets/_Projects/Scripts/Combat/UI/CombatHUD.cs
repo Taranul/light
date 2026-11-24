@@ -37,7 +37,6 @@ namespace Expedition33.Combat
         [SerializeField] private Button _freeAimButton;
         [SerializeField] private Button _gradientButton;
         [SerializeField] private Button _stanceButton;
-        [SerializeField] private Button _passButton;
 
         [Header("Skill Submenu")]
         [SerializeField] private GameObject _skillMenuRoot;
@@ -58,7 +57,6 @@ namespace Expedition33.Combat
         public event Action OnFreeAimSelected;
         public event Action OnGradientSelected;
         public event Action OnStanceToggleRequested;
-        public event Action OnPassSelected;
 
         private ActionPointPool _trackedApPool;
         private List<SkillDefinitionSO> _availableSkills;
@@ -94,11 +92,6 @@ namespace Expedition33.Combat
             if (_stanceButton != null)
             {
                 _stanceButton.onClick.AddListener(() => OnStanceToggleRequested?.Invoke());
-            }
-
-            if (_passButton != null)
-            {
-                _passButton.onClick.AddListener(() => OnPassSelected?.Invoke());
             }
 
             if (_skillBackBtn != null)
@@ -254,9 +247,6 @@ namespace Expedition33.Combat
 
             if (_stanceButton != null)
                 _stanceButton.interactable = visible;
-
-            if (_passButton != null)
-                _passButton.interactable = visible;
         }
 
         public void ShowSkillMenu(bool show)

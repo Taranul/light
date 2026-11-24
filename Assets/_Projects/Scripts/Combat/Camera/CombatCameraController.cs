@@ -19,7 +19,7 @@ namespace Expedition33.Combat
         [SerializeField] private Vector3 _freeAimLookAt = new Vector3(2.2f, 1.3f, 0f);
         [SerializeField] private float _freeAimFov = 45f;
 
-        private Tweener _posTween;
+        private Tweener _positionTween;
         private Tweener _rotTween;
         private Tweener _fovTween;
 

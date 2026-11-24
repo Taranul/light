@@ -504,24 +504,6 @@ namespace Expedition33.EditorTools
             sttComp.fontSize = 18;
             sttComp.fontStyle = FontStyles.Bold;
 
-            // Pass Button
-            var passBtnObj = new GameObject("Button_Pass");
-            passBtnObj.transform.SetParent(cmdMenu.transform, false);
-            var passImg = passBtnObj.AddComponent<Image>();
-            passImg.color = new Color(0.18f, 0.20f, 0.24f, 0.95f);
-            var passBtn = passBtnObj.AddComponent<Button>();
-            var passTm = new GameObject("Text");
-            passTm.transform.SetParent(passBtnObj.transform, false);
-            var passtRect = passTm.AddComponent<RectTransform>();
-            passtRect.anchorMin = Vector2.zero;
-            passtRect.anchorMax = Vector2.one;
-            var passtComp = passTm.AddComponent<TextMeshProUGUI>();
-            passtComp.text = "PASS TURN";
-            passtComp.alignment = TextAlignmentOptions.Center;
-            passtComp.fontSize = 17;
-            passtComp.alignment = TextAlignmentOptions.Center;
-            passtComp.fontSize = 17;
-
             // 4.6 Skill Submenu Panel
             var skillMenuPanel = new GameObject("SkillMenuPanel");
             skillMenuPanel.transform.SetParent(canvasGo.transform, false);
@@ -932,7 +914,6 @@ namespace Expedition33.EditorTools
             soHud.FindProperty("_freeAimButton").objectReferenceValue = faBtn;
             soHud.FindProperty("_gradientButton").objectReferenceValue = gradBtn;
             soHud.FindProperty("_stanceButton").objectReferenceValue = stanceBtn;
-            soHud.FindProperty("_passButton").objectReferenceValue = passBtn;
             soHud.FindProperty("_skillMenuRoot").objectReferenceValue = skillMenuPanel;
             soHud.FindProperty("_skillButtonsContainer").objectReferenceValue = skillContainer.transform;
             soHud.FindProperty("_skillBackBtn").objectReferenceValue = bkBtn;

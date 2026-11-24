@@ -216,7 +216,6 @@ namespace Expedition33.Combat
                 _hud.OnFreeAimSelected += HandlePlayerFreeAimSelected;
                 _hud.OnGradientSelected += HandlePlayerGradientSelected;
                 _hud.OnStanceToggleRequested += HandleStanceToggleRequested;
-                _hud.OnPassSelected += HandlePlayerPassSelected;
 
                 _hud.UpdateEnemyBreak(_enemyBreakMeter.CurrentBreak, _enemyBreakMeter.MaxBreak, false);
                 _hud.UpdatePlayerOvercharge(_playerOverchargeMeter.CurrentCharges, _playerOverchargeMeter.MaxCharges);
@@ -337,14 +336,6 @@ namespace Expedition33.Combat
             _audioPlayer?.PlayStanceSwitch();
             _hud?.AddLog($"Stance changed to <color=#FFE040><b>{next.ToString().ToUpper()}</b></color>.");
             FloatingCombatText.Spawn(_playerView.transform.position + Vector3.up * 1.8f, $"STANCE: {next}", Color.white, 1.2f);
-        }
-
-        private void HandlePlayerPassSelected()
-        {
-            _audioPlayer?.PlayButtonClick();
-            _selectedAction = CombatActionType.Pass;
-            _selectedSkill = null;
-            _playerActionChosen = true;
         }
 
         private void ApplyDamageAndBreakToEnemy(
@@ -478,7 +469,7 @@ namespace Expedition33.Combat
         {
             _stateMachine.ChangeState(BattleState.PlayerTurn);
             _hud?.SetTurnBanner("PLAYER TURN");
-            _hud?.AddLog("Choose Attack, Skill, Free Aim, or Pass.");
+            _hud?.AddLog("Choose Attack, Skill, or Free Aim.");
             _audioPlayer?.PlayTurnStart();
 
             // Status effects on turn start
@@ -530,11 +521,6 @@ namespace Expedition33.Combat
             else if (_selectedAction == CombatActionType.GradientAttack)
             {
                 yield return ExecutePlayerGradientAttack();
-            }
-            else
-            {
-                _hud?.AddLog($"{_playerStats.Name} passed the turn.");
-                yield return new WaitForSeconds(0.5f);
             }
         }
 
@@ -1177,7 +1163,6 @@ namespace Expedition33.Combat
                 _hud.OnFreeAimSelected -= HandlePlayerFreeAimSelected;
                 _hud.OnGradientSelected -= HandlePlayerGradientSelected;
                 _hud.OnStanceToggleRequested -= HandleStanceToggleRequested;
-                _hud.OnPassSelected -= HandlePlayerPassSelected;
             }
 
             if (_resultScreen != null)
