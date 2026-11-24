@@ -168,7 +168,6 @@ namespace Expedition33.Combat
             _gradientMeter.OnGradientReady += () =>
             {
                 _audioPlayer?.PlayOverchargeSurge();
-                _hud?.AddLog("<color=#FFA000><b>★ GRADIENT SUPER ATTACK READY! ★</b></color>");
             };
 
             _playerLoadout = new PictoLoadout(maxLuminaPoints: 10);
@@ -334,7 +333,6 @@ namespace Expedition33.Combat
         {
             var next = _playerStanceController.CycleNextStance();
             _audioPlayer?.PlayStanceSwitch();
-            _hud?.AddLog($"Stance changed to <color=#FFE040><b>{next.ToString().ToUpper()}</b></color>.");
             FloatingCombatText.Spawn(_playerView.transform.position + Vector3.up * 1.8f, $"STANCE: {next}", Color.white, 1.2f);
         }
 
@@ -368,7 +366,6 @@ namespace Expedition33.Combat
                         {
                             _playerStats.Heal(heal);
                             FloatingCombatText.Spawn(_playerView.transform.position + Vector3.up * 1.8f, $"+{heal} HP", Color.green, 1.1f);
-                            _hud?.AddLog($"<color=#44FF88>Life Steal restored {heal} HP!</color>");
                         }
                     }
                 }
@@ -402,10 +399,7 @@ namespace Expedition33.Combat
             if (brokenThisHit)
             {
                 FloatingCombatText.Spawn(_enemyView.transform.position + Vector3.up * 1.5f, "★ BROKEN! ★", new Color(1f, 0.4f, 0.1f), 1.8f);
-                _hud?.AddLog("<color=#FF8822><b>★ ENEMY POSTURE BROKEN! (Takes 1.75x damage + Skips next turn) ★</b></color>");
             }
-
-            _hud?.AddLog($"{_playerStats.Name} dealt {result.MitigatedDamage} damage ({baseBreakAmount} break) to {_enemyStats.Name}.");
         }
 
         private void RefreshTimelineHUD()
@@ -473,7 +467,6 @@ namespace Expedition33.Combat
                 _stateMachine.ChangeState(BattleState.Victory);
                 _enemyView.PlayDeath();
                 _audioPlayer?.PlayVictory();
-                _hud?.AddLog("Enemy defeated in battle!");
                 yield return new WaitForSeconds(0.8f);
                 _resultScreen?.ShowVictory();
             }
@@ -482,7 +475,6 @@ namespace Expedition33.Combat
                 _stateMachine.ChangeState(BattleState.Defeat);
                 _playerView.PlayDeath();
                 _audioPlayer?.PlayDefeat();
-                _hud?.AddLog("Party was defeated...");
                 yield return new WaitForSeconds(0.8f);
                 _resultScreen?.ShowDefeat();
             }
@@ -491,7 +483,6 @@ namespace Expedition33.Combat
         private IEnumerator PlayerTurnRoutine()
         {
             _stateMachine.ChangeState(BattleState.PlayerTurn);
-            _hud?.AddLog("Choose Attack, Skill, or Free Aim.");
             _audioPlayer?.PlayTurnStart();
 
             // Status effects on turn start
@@ -506,7 +497,6 @@ namespace Expedition33.Combat
             if (bonusAP > 0)
             {
                 _apPool.Generate(bonusAP);
-                _hud?.AddLog($"Virtuoso Stance generated +{bonusAP} bonus AP!");
             }
 
             // Lumina bonus AP (e.g. Lumina of Flow)
@@ -514,7 +504,6 @@ namespace Expedition33.Combat
             if (luminaAP > 0)
             {
                 _apPool.Generate(luminaAP);
-                _hud?.AddLog($"<color=#70D0FF>Lumina of Flow generated +{luminaAP} bonus AP!</color>");
             }
 
             _hud?.SetCommandMenuVisible(true);
@@ -593,19 +582,16 @@ namespace Expedition33.Combat
                 _playerOverchargeMeter.AddCharge(1);
                 _audioPlayer?.PlayQTESuccess();
                 FloatingCombatText.Spawn(_playerView.transform.position + Vector3.up * 1.5f, "+1 OVERCHARGE", new Color(1f, 0.85f, 0.2f), 1.3f);
-                _hud?.AddLog("<color=#FFE838>★ PERFECT QTE! Critical Strike! (+1 Overcharge) ★</color>");
             }
             else if (qteResult == QTEOutcome.Good)
             {
                 multiplier = 1.15f;
                 breakAmount = 20;
-                _hud?.AddLog("<color=#66FF88>Good timing on strike.</color>");
             }
             else
             {
                 multiplier = 0.85f;
                 breakAmount = 10;
-                _hud?.AddLog("<color=#AAAAAA>Strike timing missed.</color>");
             }
 
             ApplyDamageAndBreakToEnemy(multiplier, breakAmount, isCrit, "Strike", _enemyView.transform.position);
@@ -628,7 +614,6 @@ namespace Expedition33.Combat
         private IEnumerator ExecutePlayerSkill(SkillDefinitionSO skill)
         {
             _apPool.TrySpend(skill.APCost);
-            _hud?.AddLog($"Gustave unleashes <color=#55AAFF>{skill.SkillName}</color> (-{skill.APCost} AP)!");
 
             _cameraController?.BlendToPlayerAction(0.35f);
 
@@ -667,7 +652,6 @@ namespace Expedition33.Combat
                 bonusMultiplier = 1.4f;
                 isCrit = true;
                 _audioPlayer?.PlayQTESuccess();
-                _hud?.AddLog("<color=#FFE838>★ PERFECT SKILL TIMING! ★</color>");
             }
             else if (qteResult == QTEOutcome.Good)
             {
@@ -686,7 +670,6 @@ namespace Expedition33.Combat
                     extraBreak = charges * 25;
                     _audioPlayer?.PlayOverchargeSurge();
                     FloatingCombatText.Spawn(_playerView.transform.position + Vector3.up * 1.5f, $"OVERCHARGE x{charges}!", Color.cyan, 1.4f);
-                    _hud?.AddLog($"<color=#38E0FF>★ OVERCHARGE SURGE: {charges} charges discharged for massive bonus power! ★</color>");
                 }
             }
 
@@ -699,7 +682,6 @@ namespace Expedition33.Combat
             {
                 _enemyStatusController.ApplyStatus(skill.InflictedStatus, skill.StatusDuration, potency: 10);
                 _hud?.UpdateEnemyStatuses(_enemyStatusController.ActiveEffects);
-                _hud?.AddLog($"Inflicted {skill.InflictedStatus} for {skill.StatusDuration} turns on {_enemyStats.Name}!");
             }
 
             yield return new WaitForSeconds(0.45f);
@@ -719,8 +701,6 @@ namespace Expedition33.Combat
 
         private IEnumerator ExecutePlayerFreeAim()
         {
-            _hud?.AddLog("<color=#FFE040>FREE AIM ACTIVATED!</color> Aim for weak points.");
-
             // 1. Blend Camera to over-the-shoulder
             bool camReady = false;
             if (_cameraController != null)
@@ -854,7 +834,6 @@ namespace Expedition33.Combat
             if (_gradientMeter == null || !_gradientMeter.ConsumeForSuperAttack())
                 yield break;
 
-            _hud?.AddLog("<color=#FFA000><b>★ Gustave unleashes EXPEDITION ARTS: LUMIERE ECLIPSE! ★</b></color>");
             _audioPlayer?.PlayOverchargeSurge();
 
             // 1. Camera zoom/cinematic blend
@@ -941,7 +920,6 @@ namespace Expedition33.Combat
             // Check if enemy is posture broken
             if (_enemyBreakMeter.IsBroken)
             {
-                _hud?.AddLog($"<color=#FF8822><b>{_enemyStats.Name} is BROKEN and skips turn! Posture recovering.</b></color>");
                 FloatingCombatText.Spawn(_enemyView.transform.position + Vector3.up * 1.5f, "TURN SKIPPED (BROKEN)", new Color(1f, 0.5f, 0.2f), 1.6f);
                 _audioPlayer?.PlayTelegraphWindup();
 
@@ -955,7 +933,6 @@ namespace Expedition33.Combat
             EnemyAttackPatternSO pattern = _enemyAttackPatterns[_enemyTurnCounter % _enemyAttackPatterns.Length];
             _enemyTurnCounter++;
 
-            _hud?.AddLog($"Incoming attack: <color=#FF6644>{pattern.AttackName}</color>!");
             yield return new WaitForSeconds(0.6f);
 
             _stateMachine.ChangeState(BattleState.ActionExecuting);
@@ -1091,7 +1068,6 @@ namespace Expedition33.Combat
                         Color.green,
                         1.4f
                     );
-                    _hud?.AddLog("<color=#00FF88>★ PERFECT PARRY! (+2 AP, +1 Overcharge) Counter-strike triggered! ★</color>");
 
                     yield return new WaitForSeconds(0.2f);
 
@@ -1117,7 +1093,6 @@ namespace Expedition33.Combat
                         new Color(1f, 0.9f, 0.2f),
                         1.2f
                     );
-                    _hud?.AddLog("<color=#FFE040>Dodge successful! Damage evaded (+1 AP).</color>");
                     yield return new WaitForSeconds(0.5f);
                     break;
 
@@ -1133,7 +1108,6 @@ namespace Expedition33.Combat
                         new Color(0.3f, 0.8f, 1f),
                         1.2f
                     );
-                    _hud?.AddLog("<color=#40C0FF>Jump successful! Low sweep evaded (+1 AP).</color>");
                     yield return new WaitForSeconds(0.6f);
                     break;
 
@@ -1150,7 +1124,6 @@ namespace Expedition33.Combat
                     if (_cheatPanel != null && _cheatPanel.GodModeActive)
                     {
                         FloatingCombatText.Spawn(_playerView.transform.position, "IMMUNE (GOD MODE)", Color.green, 1.2f);
-                        _hud?.AddLog("<color=#44FF44>[GOD MODE] Gustave took 0 damage!</color>");
                     }
                     else
                     {
@@ -1167,7 +1140,6 @@ namespace Expedition33.Combat
                             Color.red,
                             1f
                         );
-                        _hud?.AddLog($"Gustave took {result.MitigatedDamage} damage!");
                     }
                     yield return new WaitForSeconds(0.4f);
                     break;

@@ -47,9 +47,6 @@ namespace Expedition33.Combat
         [SerializeField] private Image _gradientFill;
         [SerializeField] private TMP_Text _gradientText;
 
-        [Header("Feedback")]
-        [SerializeField] private TMP_Text _battleLogText;
-
         public event Action OnAttackSelected;
         public event Action OnSkillsMenuRequested;
         public event Action<SkillDefinitionSO> OnSkillSelected;
@@ -315,14 +312,6 @@ namespace Expedition33.Combat
                     ShowSkillMenu(false);
                     OnSkillSelected?.Invoke(capturedSkill);
                 });
-            }
-        }
-
-        public void AddLog(string message)
-        {
-            if (_battleLogText != null)
-            {
-                _battleLogText.text = message;
             }
         }
 

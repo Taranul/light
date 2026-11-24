@@ -122,7 +122,7 @@ namespace Expedition33.EditorTools
             playerPanel.transform.SetParent(canvasGo.transform, false);
             var ppRect = playerPanel.AddComponent<RectTransform>();
             ppRect.anchorMin = new Vector2(0.03f, 0.04f);
-            ppRect.anchorMax = new Vector2(0.32f, 0.28f);
+            ppRect.anchorMax = new Vector2(0.32f, 0.31f);
             ppRect.offsetMin = Vector2.zero;
             ppRect.offsetMax = Vector2.zero;
             var ppBg = playerPanel.AddComponent<Image>();
@@ -132,7 +132,7 @@ namespace Expedition33.EditorTools
             var pNameObj = new GameObject("PlayerName");
             pNameObj.transform.SetParent(playerPanel.transform, false);
             var pnRect = pNameObj.AddComponent<RectTransform>();
-            pnRect.anchorMin = new Vector2(0.06f, 0.78f);
+            pnRect.anchorMin = new Vector2(0.06f, 0.81f);
             pnRect.anchorMax = new Vector2(0.50f, 0.96f);
             pnRect.offsetMin = Vector2.zero;
             pnRect.offsetMax = Vector2.zero;
@@ -146,7 +146,7 @@ namespace Expedition33.EditorTools
             var phtObj = new GameObject("HpText");
             phtObj.transform.SetParent(playerPanel.transform, false);
             var phtRect = phtObj.AddComponent<RectTransform>();
-            phtRect.anchorMin = new Vector2(0.50f, 0.78f);
+            phtRect.anchorMin = new Vector2(0.50f, 0.81f);
             phtRect.anchorMax = new Vector2(0.94f, 0.96f);
             phtRect.offsetMin = Vector2.zero;
             phtRect.offsetMax = Vector2.zero;
@@ -160,8 +160,8 @@ namespace Expedition33.EditorTools
             var phpBgObj = new GameObject("HpBarBackground");
             phpBgObj.transform.SetParent(playerPanel.transform, false);
             var phpBgRect = phpBgObj.AddComponent<RectTransform>();
-            phpBgRect.anchorMin = new Vector2(0.06f, 0.63f);
-            phpBgRect.anchorMax = new Vector2(0.94f, 0.74f);
+            phpBgRect.anchorMin = new Vector2(0.06f, 0.68f);
+            phpBgRect.anchorMax = new Vector2(0.94f, 0.78f);
             phpBgRect.offsetMin = Vector2.zero;
             phpBgRect.offsetMax = Vector2.zero;
             var phpBgImg = phpBgObj.AddComponent<Image>();
@@ -186,8 +186,8 @@ namespace Expedition33.EditorTools
             var patObj = new GameObject("ApText");
             patObj.transform.SetParent(playerPanel.transform, false);
             var patRect = patObj.AddComponent<RectTransform>();
-            patRect.anchorMin = new Vector2(0.06f, 0.44f);
-            patRect.anchorMax = new Vector2(0.38f, 0.58f);
+            patRect.anchorMin = new Vector2(0.06f, 0.51f);
+            patRect.anchorMax = new Vector2(0.38f, 0.64f);
             patRect.offsetMin = Vector2.zero;
             patRect.offsetMax = Vector2.zero;
             var patText = patObj.AddComponent<TextMeshProUGUI>();
@@ -200,8 +200,8 @@ namespace Expedition33.EditorTools
             var pipsObj = new GameObject("ApPipsContainer");
             pipsObj.transform.SetParent(playerPanel.transform, false);
             var pipsRect = pipsObj.AddComponent<RectTransform>();
-            pipsRect.anchorMin = new Vector2(0.38f, 0.44f);
-            pipsRect.anchorMax = new Vector2(0.94f, 0.58f);
+            pipsRect.anchorMin = new Vector2(0.38f, 0.51f);
+            pipsRect.anchorMax = new Vector2(0.94f, 0.64f);
             pipsRect.offsetMin = Vector2.zero;
             pipsRect.offsetMax = Vector2.zero;
             var pipsHlg = pipsObj.AddComponent<HorizontalLayoutGroup>();
@@ -226,8 +226,8 @@ namespace Expedition33.EditorTools
             var pstObj = new GameObject("StanceText");
             pstObj.transform.SetParent(playerPanel.transform, false);
             var pstRect = pstObj.AddComponent<RectTransform>();
-            pstRect.anchorMin = new Vector2(0.06f, 0.25f);
-            pstRect.anchorMax = new Vector2(0.50f, 0.40f);
+            pstRect.anchorMin = new Vector2(0.06f, 0.35f);
+            pstRect.anchorMax = new Vector2(0.50f, 0.48f);
             pstRect.offsetMin = Vector2.zero;
             pstRect.offsetMax = Vector2.zero;
             var pstText = pstObj.AddComponent<TextMeshProUGUI>();
@@ -240,8 +240,8 @@ namespace Expedition33.EditorTools
             var pocObj = new GameObject("OverchargeText");
             pocObj.transform.SetParent(playerPanel.transform, false);
             var pocRect = pocObj.AddComponent<RectTransform>();
-            pocRect.anchorMin = new Vector2(0.50f, 0.25f);
-            pocRect.anchorMax = new Vector2(0.94f, 0.40f);
+            pocRect.anchorMin = new Vector2(0.50f, 0.35f);
+            pocRect.anchorMax = new Vector2(0.94f, 0.48f);
             pocRect.offsetMin = Vector2.zero;
             pocRect.offsetMax = Vector2.zero;
             var pocText = pocObj.AddComponent<TextMeshProUGUI>();
@@ -254,8 +254,8 @@ namespace Expedition33.EditorTools
             var pstEffObj = new GameObject("PlayerStatusText");
             pstEffObj.transform.SetParent(playerPanel.transform, false);
             var psteRect = pstEffObj.AddComponent<RectTransform>();
-            psteRect.anchorMin = new Vector2(0.06f, 0.06f);
-            psteRect.anchorMax = new Vector2(0.94f, 0.22f);
+            psteRect.anchorMin = new Vector2(0.06f, 0.20f);
+            psteRect.anchorMax = new Vector2(0.94f, 0.32f);
             psteRect.offsetMin = Vector2.zero;
             psteRect.offsetMax = Vector2.zero;
             var pStatusText = pstEffObj.AddComponent<TextMeshProUGUI>();
@@ -263,6 +263,46 @@ namespace Expedition33.EditorTools
             pStatusText.alignment = TextAlignmentOptions.Left;
             pStatusText.color = new Color(0.9f, 0.9f, 0.9f);
             pStatusText.text = "";
+
+            // Gradient Meter Bar (Bottom of PlayerPanel)
+            var gradObj = new GameObject("GradientMeterBar");
+            gradObj.transform.SetParent(playerPanel.transform, false);
+            var gradRect = gradObj.AddComponent<RectTransform>();
+            gradRect.anchorMin = new Vector2(0.06f, 0.05f);
+            gradRect.anchorMax = new Vector2(0.94f, 0.17f);
+            gradRect.offsetMin = Vector2.zero;
+            gradRect.offsetMax = Vector2.zero;
+
+            var gradBgImg = gradObj.AddComponent<Image>();
+            gradBgImg.color = new Color(0.12f, 0.08f, 0.18f, 0.92f);
+
+            var gradFillObj = new GameObject("GradientFill");
+            gradFillObj.transform.SetParent(gradObj.transform, false);
+            var gfRect = gradFillObj.AddComponent<RectTransform>();
+            gfRect.anchorMin = Vector2.zero;
+            gfRect.anchorMax = Vector2.one;
+            gfRect.offsetMin = Vector2.zero;
+            gfRect.offsetMax = Vector2.zero;
+            var gradFillImg = gradFillObj.AddComponent<Image>();
+            gradFillImg.sprite = solidWhiteSprite;
+            gradFillImg.type = Image.Type.Filled;
+            gradFillImg.fillMethod = Image.FillMethod.Horizontal;
+            gradFillImg.fillAmount = 0f;
+            gradFillImg.color = new Color(0.55f, 0.2f, 0.9f, 1f);
+
+            var gradTextObj = new GameObject("GradientText");
+            gradTextObj.transform.SetParent(gradObj.transform, false);
+            var gtRect = gradTextObj.AddComponent<RectTransform>();
+            gtRect.anchorMin = Vector2.zero;
+            gtRect.anchorMax = Vector2.one;
+            gtRect.offsetMin = Vector2.zero;
+            gtRect.offsetMax = Vector2.zero;
+            var gradText = gradTextObj.AddComponent<TextMeshProUGUI>();
+            gradText.fontSize = 17;
+            gradText.fontStyle = FontStyles.Bold;
+            gradText.alignment = TextAlignmentOptions.Center;
+            gradText.color = new Color(1f, 0.95f, 0.9f);
+            gradText.text = "GRADIENT  <b>0</b> / 100";
 
             // 4.4 Enemy Status Panel (Top Right)
             var enemyPanel = new GameObject("EnemyPanel");
@@ -522,60 +562,6 @@ namespace Expedition33.EditorTools
             bktComp.text = "BACK";
             bktComp.alignment = TextAlignmentOptions.Center;
             bktComp.fontSize = 17;
-
-            // 4.7 Battle Log (Bottom Center)
-            var logObj = new GameObject("BattleLog");
-            logObj.transform.SetParent(canvasGo.transform, false);
-            var logRect = logObj.AddComponent<RectTransform>();
-            logRect.anchorMin = new Vector2(0.30f, 0.04f);
-            logRect.anchorMax = new Vector2(0.70f, 0.12f);
-            logRect.offsetMin = Vector2.zero;
-            logRect.offsetMax = Vector2.zero;
-            var logText = logObj.AddComponent<TextMeshProUGUI>();
-            logText.fontSize = 19;
-            logText.alignment = TextAlignmentOptions.Center;
-            logText.color = new Color(0.9f, 0.9f, 0.9f, 0.85f);
-            logText.text = "Battle initialized.";
-
-            // 4.8 Gradient Meter Bar (Center Lower, above Battle Log)
-            var gradObj = new GameObject("GradientMeterBar");
-            gradObj.transform.SetParent(canvasGo.transform, false);
-            var gradRect = gradObj.AddComponent<RectTransform>();
-            gradRect.anchorMin = new Vector2(0.33f, 0.13f);
-            gradRect.anchorMax = new Vector2(0.67f, 0.17f);
-            gradRect.offsetMin = Vector2.zero;
-            gradRect.offsetMax = Vector2.zero;
-
-            var gradBgImg = gradObj.AddComponent<Image>();
-            gradBgImg.color = new Color(0.12f, 0.08f, 0.18f, 0.92f);
-
-            var gradFillObj = new GameObject("GradientFill");
-            gradFillObj.transform.SetParent(gradObj.transform, false);
-            var gfRect = gradFillObj.AddComponent<RectTransform>();
-            gfRect.anchorMin = Vector2.zero;
-            gfRect.anchorMax = Vector2.one;
-            gfRect.offsetMin = Vector2.zero;
-            gfRect.offsetMax = Vector2.zero;
-            var gradFillImg = gradFillObj.AddComponent<Image>();
-            gradFillImg.sprite = solidWhiteSprite;
-            gradFillImg.type = Image.Type.Filled;
-            gradFillImg.fillMethod = Image.FillMethod.Horizontal;
-            gradFillImg.fillAmount = 0f;
-            gradFillImg.color = new Color(0.55f, 0.2f, 0.9f, 1f);
-
-            var gradTextObj = new GameObject("GradientText");
-            gradTextObj.transform.SetParent(gradObj.transform, false);
-            var gtRect = gradTextObj.AddComponent<RectTransform>();
-            gtRect.anchorMin = Vector2.zero;
-            gtRect.anchorMax = Vector2.one;
-            gtRect.offsetMin = Vector2.zero;
-            gtRect.offsetMax = Vector2.zero;
-            var gradText = gradTextObj.AddComponent<TextMeshProUGUI>();
-            gradText.fontSize = 17;
-            gradText.fontStyle = FontStyles.Bold;
-            gradText.alignment = TextAlignmentOptions.Center;
-            gradText.color = new Color(1f, 0.95f, 0.9f);
-            gradText.text = "GRADIENT  <b>0</b> / 100";
 
             // 5. Timing Visualizer UI (Center Screen for Defense)
             var timingObj = new GameObject("TimingVisualizer");
@@ -895,7 +881,6 @@ namespace Expedition33.EditorTools
             soHud.FindProperty("_skillBackBtn").objectReferenceValue = bkBtn;
             soHud.FindProperty("_gradientFill").objectReferenceValue = gradFillImg;
             soHud.FindProperty("_gradientText").objectReferenceValue = gradText;
-            soHud.FindProperty("_battleLogText").objectReferenceValue = logText;
             soHud.ApplyModifiedPropertiesWithoutUndo();
 
             // 8. Battle Result Screen UI
